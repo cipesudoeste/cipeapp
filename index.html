@@ -186,6 +186,22 @@
       </div>
     </div>
 
+    <div class="card active">
+      <a class="card-link" href="enquetes.html" aria-label="Abrir Enquetes"></a>
+      <div class="card-no">06</div>
+      <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>
+      </svg>
+      <h3>Enquetes</h3>
+      <p>Crie questionários para o efetivo, acompanhe quem falta responder e baixe as respostas.</p>
+      <div class="card-foot">
+        <span class="badge live">Disponível</span>
+        <span class="go">Abrir painel
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -202,7 +218,7 @@
 (async function () {
   const PAINEL_POR_PAGINA = {
     "efetivo.html": "efetivo", "viaturas.html": "viaturas", "whatsapp.html": "whatsapp",
-    "cadastro.html": "cadastros", "oficios.html": "oficios",
+    "cadastro.html": "cadastros", "oficios.html": "oficios", "enquetes.html": "enquetes",
   };
   const cards = [...document.querySelectorAll(".card")].filter((c) => {
     const a = c.querySelector("a.card-link");

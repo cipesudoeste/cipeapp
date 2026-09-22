@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enquete — CIPE Sudoeste</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="enquetes.css">
+</head>
+<body>
+<div class="camo-trim camo-bg"></div>
+<header class="site-header">
+  <div class="wrap" style="display:flex;align-items:center;gap:12px;">
+    <img class="logo-cipe" src="img/logo-cipe.png" alt="CIPE Sudoeste" style="height:34px;">
+    <div class="brand-text"><div class="eyebrow">Polícia Militar da Bahia · CIPE Sudoeste</div><div class="title" style="font-size:16px;">Enquete</div></div>
+  </div>
+</header>
+
+<main class="eqp-wrap">
+  <div class="eqp-head" id="cab"></div>
+  <div id="etapa"><div class="eqp-box"><p>Carregando…</p></div></div>
+</main>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+(function () {
+  // sessão separada da dos painéis, para não derrubar o login de quem administra
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storageKey: "cipe-enquete-sessao" } });
+  const id = new URLSearchParams(location.search).get("id");
+  const $ = (x) => document.getElementById(x);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let enquete = null, quem = null, matriculaDigitada = "";
+
+  const ERROS = {
+    matricula_invalida: "Digite a matrícula só com números (8 dígitos).",
+    matricula_nao_encontrada: "Matrícula não encontrada no efetivo da CIPE Sudoeste. Confira os números ou procure a SRHS.",
+    sem_email: "Sua matrícula não tem e-mail cadastrado. Faça a Atualização Cadastral ou procure a SRHS.",
+    aguarde: "Um código acabou de ser enviado. Aguarde um minuto antes de pedir outro.",
+    falha_envio: "Não foi possível enviar o código agora. Tente novamente em instantes.",
+    codigo_invalido: "Código incorreto ou expirado. Confira o e-mail ou peça um novo código.",
+    falha_interna: "Erro no servidor. Tente novamente em instantes.",
+  };
+
+  function tela(html) { $("etapa").innerHTML = html; }
+  function aviso(titulo, texto) { tela(`<div class="eqp-box"><h2>${esc(titulo)}</h2><p style="margin:0;">${texto}</p></div>`); }
+
+  async function chamar(corpo) {
+    const { data, error } = await sb.functions.invoke("verificar-matricula", { body: corpo });
+    if (!error) return data;
+    let info = {};
+    try { info = await error.context.json(); } catch (_) {}
+    return { erro: info.erro || "falha_interna" };
+  }
+
+  async function iniciar() {
+    if (!id) return aviso("Link incompleto", "Abra a enquete pelo link completo enviado pela SRHS.");
+    const { data, error } = await sb.rpc("enquete_publica", { p_id: id });
+    if (error || !data) return aviso("Não foi possível abrir", "Tente novamente em instantes.");
+    if (data.situacao === "indisponivel") return aviso("Enquete indisponível", "Esta enquete não existe ou ainda não foi publicada.");
+    if (data.situacao === "encerrada") {
+      $("cab").innerHTML = `<h1>${esc(data.titulo)}</h1>`;
+      return aviso("Respostas encerradas", "O prazo desta enquete terminou. Em caso de dúvida, procure a SRHS.");
+    }
+    enquete = data;
+    document.title = data.titulo + " — CIPE Sudoeste";
+    $("cab").innerHTML = `<h1>${esc(data.titulo)}</h1>${data.descricao ? `<p>${esc(data.descricao)}</p>` : ""}` +
+      (data.prazo ? `<div class="eqp-prazo">Responda até ${new Date(data.prazo).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" })}</div>` : "<div style='height:14px'></div>");
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) return carregarMinhaResposta();
+    telaMatricula();
+  }
+
+  function telaMatricula(erro) {
+    tela(`<div class="eqp-box">
+      <h2>Identifique-se</h2>
+      <p>Informe sua matrícula. Vamos enviar um código para o e-mail do seu cadastro.</p>
+      <div class="eqp-linha">
+        <input class="eq-in" id="mat" inputmode="numeric" maxlength="10" placeholder="Matrícula (8 números)" value="${esc(matriculaDigitada)}" autocomplete="off">
+        <button type="button" class="ef-btn primary" id="btn-mat">Enviar código</button>
+      </div>
+      <div class="eq-msg ${erro ? "erro" : ""}" id="m" style="margin-top:10px;">${esc(erro || "")}</div>
+    </div>`);
+    $("mat").focus();
+    const enviar = async () => {
+      matriculaDigitada = $("mat").value.replace(/\D/g, "");
+      if (matriculaDigitada.length < 6) return ($("m").textContent = ERROS.matricula_invalida, $("m").className = "eq-msg erro");
+      $("btn-mat").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Enviando…";
+      const r = await chamar({ acao: "solicitar", matricula: matriculaDigitada });
+      if (r.erro) { $("btn-mat").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
+      telaCodigo(r.email_mascarado);
+    };
+    $("btn-mat").onclick = enviar;
+    $("mat").onkeydown = (e) => e.key === "Enter" && enviar();
+  }
+
+  function telaCodigo(emailMasc) {
+    tela(`<div class="eqp-box">
+      <h2>Digite o código</h2>
+      <p>Enviamos um código para <b>${esc(emailMasc)}</b>. Pode levar um minuto; confira também a caixa de spam.</p>
+      <div class="eqp-linha">
+        <input class="eq-in" id="cod" inputmode="numeric" maxlength="10" autocomplete="one-time-code" placeholder="Código" style="letter-spacing:.25em;text-align:center;font-family:var(--font-mono);">
+        <button type="button" class="ef-btn primary" id="btn-cod">Confirmar</button>
+      </div>
+      <div class="eq-msg" id="m" style="margin-top:10px;"></div>
+      <div style="display:flex;gap:16px;margin-top:14px;">
+        <button type="button" class="eqp-link" id="reenviar">Enviar outro código</button>
+        <button type="button" class="eqp-link" id="trocar">Trocar matrícula</button>
+      </div>
+      <p style="margin:14px 0 0;font-size:12px;">Não tem mais acesso a esse e-mail? Procure a SRHS para atualizar seu cadastro.</p>
+    </div>`);
+    $("cod").focus();
+    const confirmar = async () => {
+      const codigo = $("cod").value.replace(/\s/g, "");
+      if (!codigo) return;
+      $("btn-cod").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Confirmando…";
+      const r = await chamar({ acao: "verificar", matricula: matriculaDigitada, codigo });
+      if (r.erro) { $("btn-cod").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
+      await sb.auth.setSession(r.session);
+      carregarMinhaResposta();
+    };
+    $("btn-cod").onclick = confirmar;
+    $("cod").onkeydown = (e) => e.key === "Enter" && confirmar();
+    $("trocar").onclick = () => telaMatricula();
+    $("reenviar").onclick = async () => {
+      $("m").className = "eq-msg"; $("m").textContent = "Enviando…";
+      const r = await chamar({ acao: "solicitar", matricula: matriculaDigitada });
+      $("m").className = "eq-msg" + (r.erro ? " erro" : " ok");
+      $("m").textContent = r.erro ? (ERROS[r.erro] || ERROS.falha_interna) : "Novo código enviado.";
+    };
+  }
+
+  async function sair() {
+    await sb.auth.signOut();
+    quem = null;
+    telaMatricula();
+  }
+
+  async function carregarMinhaResposta() {
+    tela(`<div class="eqp-box"><p>Carregando…</p></div>`);
+    const { data, error } = await sb.rpc("minha_resposta", { p_enquete: id });
+    if (error || !data || data.motivo === "nao_verificado") { await sb.auth.signOut(); return telaMatricula(); }
+    quem = data;
+    const topo = `<div class="eqp-quem"><span>Respondendo como <b>${esc(data.nome || data.matricula)}</b></span><button type="button" class="eqp-link" id="sair">Não sou eu</button></div>`;
+    if (data.motivo === "fora_do_publico") {
+      tela(topo + `<div class="eqp-box"><h2>Esta enquete não é para você</h2><p style="margin:0;">Ela foi enviada apenas para outros locais de trabalho. Se achar que é um engano, procure a SRHS.</p></div>`);
+    } else if (!data.pode) {
+      tela(topo + `<div class="eqp-box eqp-fim"><div class="ok">✓</div><h2>Você já respondeu</h2><p style="margin:0;">Resposta enviada em ${new Date(data.enviado_em).toLocaleString("pt-BR")}. Esta enquete não permite alteração.</p></div>`);
+    } else {
+      tela(topo + (data.respostas ? `<div class="eq-msg ok" style="margin-bottom:12px;">Você já respondeu em ${new Date(data.enviado_em).toLocaleString("pt-BR")}. Pode alterar abaixo e enviar de novo.</div>` : "") +
+        `<form id="f" novalidate>${enquete.perguntas.map(campo).join("")}
+          <div class="eq-msg" id="m" style="margin:6px 0 10px;"></div>
+          <button type="submit" class="ef-btn primary" id="btn-enviar" style="width:100%;justify-content:center;padding:12px;">${data.respostas ? "Enviar alterações" : "Enviar respostas"}</button>
+        </form>`);
+      preencher(data.respostas || {});
+      aplicarCondicoes();
+      $("f").addEventListener("change", aplicarCondicoes);
+      $("f").addEventListener("input", aplicarCondicoes);
+      $("f").addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
+    }
+    $("sair").onclick = sair;
+  }
+
+  function campo(q, i) {
+    const nome = "q_" + q.id;
+    const cab = `<div class="eqp-q-t">${i + 1}. ${esc(q.titulo)}${q.obrigatoria ? '<span class="ob" title="Obrigatória">*</span>' : ""}</div>` +
+      (q.ajuda ? `<div class="eqp-q-a">${esc(q.ajuda)}</div>` : `<div style="height:8px"></div>`);
+    let ctl = "";
+    switch (q.tipo) {
+      case "texto": ctl = `<input class="eq-in" name="${nome}" maxlength="500">`; break;
+      case "paragrafo": ctl = `<textarea class="eq-in" name="${nome}" rows="4" maxlength="5000"></textarea>`; break;
+      case "numero": ctl = `<input class="eq-in" name="${nome}" type="number" inputmode="decimal" step="any">`; break;
+      case "data": ctl = `<input class="eq-in" name="${nome}" type="date">`; break;
+      case "sim_nao": ctl = `<div class="eqp-sn">${["Sim", "Não"].map((o) => `<label class="eqp-op"><input type="radio" name="${nome}" value="${o}"> ${o}</label>`).join("")}</div>`; break;
+      case "unica": ctl = q.opcoes.map((o) => `<label class="eqp-op"><input type="radio" name="${nome}" value="${esc(o)}"> ${esc(o)}</label>`).join(""); break;
+      case "multipla": ctl = q.opcoes.map((o) => `<label class="eqp-op"><input type="checkbox" name="${nome}" value="${esc(o)}"> ${esc(o)}</label>`).join(""); break;
+      case "lista": ctl = `<select class="eq-in" name="${nome}"><option value="">Selecione</option>${q.opcoes.map((o) => `<option>${esc(o)}</option>`).join("")}</select>`; break;
+    }
+    return `<div class="eqp-q" data-q="${q.id}">${cab}${ctl}</div>`;
+  }
+
+  function valor(q) {
+    const els = document.getElementsByName("q_" + q.id);
+    if (!els.length) return null;
+    if (q.tipo === "multipla") return [...els].filter((e) => e.checked).map((e) => e.value);
+    if (q.tipo === "sim_nao" || q.tipo === "unica") { const c = [...els].find((e) => e.checked); return c ? c.value : ""; }
+    return els[0].value.trim();
+  }
+  function preencher(r) {
+    enquete.perguntas.forEach((q) => {
+      const v = r[q.id];
+      if (v === undefined || v === null) return;
+      const els = document.getElementsByName("q_" + q.id);
+      if (q.tipo === "multipla") [...els].forEach((e) => (e.checked = (v || []).includes(e.value)));
+      else if (q.tipo === "sim_nao" || q.tipo === "unica") [...els].forEach((e) => (e.checked = e.value === v));
+      else if (els[0]) els[0].value = v;
+    });
+  }
+  function visivel(q) {
+    if (!q.condicao) return true;
+    const pai = enquete.perguntas.find((x) => x.id === q.condicao.pergunta);
+    if (!pai || !visivel(pai)) return false;
+    const v = valor(pai);
+    return Array.isArray(v) ? v.includes(q.condicao.valor) : v === q.condicao.valor;
+  }
+  function aplicarCondicoes() {
+    enquete.perguntas.forEach((q) => {
+      const box = document.querySelector(`.eqp-q[data-q="${q.id}"]`);
+      if (box) box.hidden = !visivel(q);
+    });
+  }
+
+  async function enviar() {
+    const respostas = {};
+    let primeiroErro = null;
+    document.querySelectorAll(".eqp-q.erro").forEach((e) => e.classList.remove("erro"));
+    enquete.perguntas.forEach((q) => {
+      if (!visivel(q)) return;
+      const v = valor(q);
+      const vazio = v === null || v === "" || (Array.isArray(v) && !v.length);
+      if (q.obrigatoria && vazio) {
+        const box = document.querySelector(`.eqp-q[data-q="${q.id}"]`);
+        box.classList.add("erro");
+        primeiroErro = primeiroErro || box;
+        return;
+      }
+      if (!vazio) respostas[q.id] = q.tipo === "numero" ? Number(v) : v;
+    });
+    if (primeiroErro) {
+      $("m").className = "eq-msg erro";
+      $("m").textContent = "Responda as perguntas marcadas em vermelho.";
+      primeiroErro.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    $("btn-enviar").disabled = true;
+    $("m").className = "eq-msg"; $("m").textContent = "Enviando…";
+    const { error } = await sb.rpc("enviar_resposta", { p_enquete: id, p_respostas: respostas });
+    if (error) {
+      $("btn-enviar").disabled = false;
+      $("m").className = "eq-msg erro"; $("m").textContent = error.message || "Não foi possível enviar.";
+      return;
+    }
+    tela(`<div class="eqp-box eqp-fim"><div class="ok">✓</div><h2>Resposta enviada</h2>
+      <p>Obrigado, ${esc((quem.nome || "").split(" ").slice(0, 3).join(" ") || quem.matricula)}. Sua resposta foi registrada.</p>
+      ${enquete.permitir_edicao ? `<button type="button" class="eqp-link" id="rever">Rever minhas respostas</button>` : ""}
+      <p style="margin-top:14px;font-size:12px;">Você já pode fechar esta página.</p></div>`);
+    if ($("rever")) $("rever").onclick = carregarMinhaResposta;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  iniciar();
+})();
+</script>
+</body>
+</html>

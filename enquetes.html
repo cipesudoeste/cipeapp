@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPE Sudoeste — Enquetes</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="enquetes.css">
+</head>
+<body>
+<div class="camo-trim camo-bg"></div>
+<div class="eq-wrap">
+
+  <!-- LISTA -->
+  <section class="eq-view ativa" id="v-lista">
+    <div class="eq-top">
+      <a class="home-btn" href="index.html" title="Voltar para a página inicial">←</a>
+      <h1>Enquetes</h1>
+      <button type="button" class="ef-btn primary" id="btn-nova">Nova enquete</button>
+    </div>
+    <div class="eq-filtros">
+      <button type="button" class="ef-tab active" data-filtro="ativas">Em uso</button>
+      <button type="button" class="ef-tab" data-filtro="arquivada">Arquivadas</button>
+    </div>
+    <div id="lista"></div>
+  </section>
+
+  <!-- EDITOR -->
+  <section class="eq-view" id="v-editor">
+    <div class="eq-top">
+      <button type="button" class="home-btn" data-voltar title="Voltar para a lista">←</button>
+      <h1 id="ed-titulo-pagina">Nova enquete</h1>
+      <span class="eq-status" id="ed-status"></span>
+    </div>
+
+    <div class="eq-card">
+      <div class="eq-grid">
+        <div>
+          <label class="eq-lbl" for="ed-titulo">Título</label>
+          <input class="eq-in titulo" id="ed-titulo" placeholder="Ex.: Levantamento de tamanhos de fardamento">
+        </div>
+        <div>
+          <label class="eq-lbl" for="ed-descricao">Orientações para quem vai responder (opcional)</label>
+          <textarea class="eq-in" id="ed-descricao" rows="3" placeholder="Explique o objetivo e o que o policial precisa ter em mãos."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="eq-card">
+      <h2>Quem responde e até quando</h2>
+      <div class="eq-grid dois">
+        <div>
+          <span class="eq-lbl">Público</span>
+          <div class="eq-radio">
+            <label class="eq-check"><input type="radio" name="ed-publico" value="todos" checked> Todo o efetivo ativo</label>
+            <label class="eq-check"><input type="radio" name="ed-publico" value="locais"> Só alguns locais de trabalho</label>
+          </div>
+          <div class="eq-chips" id="ed-locais" hidden></div>
+          <div class="eq-msg" id="ed-publico-total" style="margin-top:8px;"></div>
+        </div>
+        <div>
+          <label class="eq-lbl" for="ed-prazo">Prazo para responder (opcional)</label>
+          <input class="eq-in" type="datetime-local" id="ed-prazo">
+          <label class="eq-check" style="margin-top:12px;"><input type="checkbox" id="ed-edicao" checked> O policial pode alterar a resposta até o prazo</label>
+        </div>
+      </div>
+    </div>
+
+    <h2 style="font-family:var(--font-display);font-size:16px;color:var(--ink);margin:18px 0 10px;">Perguntas</h2>
+    <div id="ed-perguntas"></div>
+    <div class="eq-add" id="ed-add"></div>
+
+    <div class="eq-rodape">
+      <span class="eq-aviso" id="ed-aviso"></span>
+      <span class="eq-msg" id="ed-msg"></span>
+      <button type="button" class="ef-btn" id="btn-salvar">Salvar</button>
+      <button type="button" class="ef-btn primary" id="btn-publicar">Salvar e publicar</button>
+    </div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section class="eq-view" id="v-resultados">
+    <div class="eq-top">
+      <button type="button" class="home-btn" data-voltar title="Voltar para a lista">←</button>
+      <h1 id="rs-titulo"></h1>
+      <span class="eq-status" id="rs-status"></span>
+      <button type="button" class="ef-btn" id="rs-link">Copiar link</button>
+    </div>
+    <div class="eq-kpis">
+      <div class="eq-kpi"><div class="n" id="k-resp">0</div><div class="l">responderam</div></div>
+      <div class="eq-kpi"><div class="n" id="k-pend">0</div><div class="l">faltam responder</div></div>
+      <div class="eq-kpi"><div class="n" id="k-pct">0%</div><div class="l">de adesão</div></div>
+    </div>
+    <div class="eq-tabs">
+      <button type="button" class="ef-tab active" data-sec="s-resumo">Resumo</button>
+      <button type="button" class="ef-tab" data-sec="s-respostas">Respostas</button>
+      <button type="button" class="ef-tab" data-sec="s-pendentes">Quem falta</button>
+    </div>
+
+    <div class="eq-sec ativa" id="s-resumo"><div id="resumo"></div></div>
+
+    <div class="eq-sec" id="s-respostas">
+      <div class="eq-export"><span>Baixar respostas:</span>
+        <button type="button" class="ef-btn" data-exp="respostas-csv">CSV</button>
+        <button type="button" class="ef-btn" data-exp="respostas-xlsx">Excel</button>
+        <button type="button" class="ef-btn" data-exp="respostas-pdf">PDF</button>
+      </div>
+      <div class="eq-tw"><table class="eq-t" id="t-respostas"></table></div>
+    </div>
+
+    <div class="eq-sec" id="s-pendentes">
+      <div class="eq-export"><span>Baixar lista:</span>
+        <button type="button" class="ef-btn" data-exp="pendentes-csv">CSV</button>
+        <button type="button" class="ef-btn" data-exp="pendentes-xlsx">Excel</button>
+        <button type="button" class="ef-btn" data-exp="pendentes-pdf">PDF</button>
+        <select class="eq-in" id="pd-local" style="width:auto;margin-left:auto;"></select>
+      </div>
+      <div class="eq-tw"><table class="eq-t" id="t-pendentes"></table></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js" data-painel="enquetes"></script>
+<script src="enquetes.js"></script>
+</body>
+</html>
