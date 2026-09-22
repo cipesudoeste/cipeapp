@@ -118,3 +118,22 @@ table.eq-t{width:100%;border-collapse:collapse;font-size:12.5px;}
 .eqp-fim{text-align:center;padding:30px 20px;}
 .eqp-fim .ok{font-size:40px;color:#9fd08a;line-height:1;margin-bottom:10px;}
 .eq-in:focus-visible,.ef-btn:focus-visible,.eqp-op:focus-within{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* identificação (enquete.html) */
+.eqp-login h2{margin-bottom:14px;}
+.eqp-abas{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:9px;margin-bottom:18px;}
+.eqp-abas button{background:none;border:none;border-radius:6px;padding:9px 8px;font-size:13px;font-family:var(--font-body);color:var(--ink-muted);cursor:pointer;}
+.eqp-abas button[aria-selected="true"]{background:var(--bg-panel-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--accent-dim);}
+.eqp-abas button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.eqp-login .eq-lbl{font-size:12.5px;color:var(--ink-muted);margin-bottom:6px;}
+.eqp-grande{font-size:16px;padding:12px 13px;margin-bottom:14px;}
+.eqp-senha{position:relative;}
+.eqp-senha .eq-in{padding-right:78px;}
+.eqp-ver{position:absolute;right:8px;top:8px;background:none;border:1px solid var(--line);border-radius:6px;color:var(--ink-faint);font-size:12px;padding:6px 9px;cursor:pointer;}
+.eqp-ver:hover{color:var(--accent);}
+.eqp-principal{width:100%;justify-content:center;padding:13px;font-size:12.5px;}
+.eqp-rodape-login{text-align:center;margin-top:14px;}
+.eqp-dica{font-size:13px;color:var(--ink-muted);line-height:1.6;margin:0 0 14px;}
+.eqp-login .eq-msg{margin-top:12px;text-align:center;}
+.eqp-nota{font-size:12.5px;color:var(--ink-faint);text-align:center;margin:14px 0 0;line-height:1.6;}
+.eqp-nota b{color:var(--ink-muted);font-weight:500;}

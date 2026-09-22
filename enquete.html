@@ -83,25 +83,38 @@
   let modoCodigo = "entrar"; // entrar | recuperar
   const METODO = "cipe-enquete-metodo";
 
+  let abaLogin = "senha"; // senha | codigo
+
   function telaMatricula(erro) {
-    tela(`<div class="eqp-box">
-      <h2>Identifique-se</h2>
-      <p>Entre com sua matrícula e senha, ou receba um código no e-mail do seu cadastro.</p>
+    tela(`<div class="eqp-box eqp-login">
+      <h2>Identificação</h2>
+      <div class="eqp-abas" role="tablist">
+        <button type="button" role="tab" data-aba="senha" aria-selected="${abaLogin === "senha"}">Com senha</button>
+        <button type="button" role="tab" data-aba="codigo" aria-selected="${abaLogin === "codigo"}">Com código por e-mail</button>
+      </div>
+
       <label class="eq-lbl" for="mat">Matrícula</label>
-      <input class="eq-in" id="mat" inputmode="numeric" maxlength="10" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username" style="margin-bottom:10px;">
-      <label class="eq-lbl" for="senha">Senha</label>
-      <div class="eqp-linha">
-        <input class="eq-in" id="senha" type="password" autocomplete="current-password">
-        <button type="button" class="ef-btn primary" id="btn-entrar">Entrar</button>
+      <input class="eq-in eqp-grande" id="mat" inputmode="numeric" maxlength="10" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username">
+
+      <div data-painel="senha" ${abaLogin === "senha" ? "" : "hidden"}>
+        <label class="eq-lbl" for="senha">Senha</label>
+        <div class="eqp-senha">
+          <input class="eq-in eqp-grande" id="senha" type="password" autocomplete="current-password">
+          <button type="button" class="eqp-ver" id="ver-senha">Mostrar</button>
+        </div>
+        <button type="button" class="ef-btn primary eqp-principal" id="btn-entrar">Entrar</button>
+        <div class="eqp-rodape-login"><button type="button" class="eqp-link" id="btn-esqueci">Esqueci minha senha</button></div>
       </div>
-      <div class="eq-msg ${erro ? "erro" : ""}" id="m" style="margin-top:10px;">${esc(erro || "")}</div>
-      <button type="button" class="ef-btn" id="btn-codigo" style="width:100%;justify-content:center;margin-top:6px;">Receber código por e-mail</button>
-      <div style="display:flex;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap;">
-        <button type="button" class="eqp-link" id="btn-esqueci">Esqueci minha senha</button>
-        <button type="button" class="eqp-link" id="btn-primeiro">Primeiro acesso</button>
+
+      <div data-painel="codigo" ${abaLogin === "codigo" ? "" : "hidden"}>
+        <p class="eqp-dica">Vamos enviar um código para o e-mail do seu cadastro. Depois de entrar, você pode criar uma senha.</p>
+        <button type="button" class="ef-btn primary eqp-principal" id="btn-codigo">Enviar código</button>
       </div>
-    </div>`);
-    (matriculaDigitada ? $("senha") : $("mat")).focus();
+
+      <div class="eq-msg ${erro ? "erro" : ""}" id="m">${esc(erro || "")}</div>
+    </div>
+    <p class="eqp-nota">Primeiro acesso? Use <b>Com código por e-mail</b> e crie sua senha em seguida.</p>`);
+
     const lerMat = () => {
       matriculaDigitada = $("mat").value.replace(/\D/g, "");
       if (matriculaDigitada.length < 6) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS.matricula_invalida; $("mat").focus(); return false; }
@@ -110,7 +123,7 @@
     const entrar = async () => {
       if (!lerMat()) return;
       const senha = $("senha").value;
-      if (!senha) { $("m").className = "eq-msg erro"; $("m").textContent = "Digite sua senha, ou receba um código por e-mail."; return; }
+      if (!senha) { $("m").className = "eq-msg erro"; $("m").textContent = "Digite sua senha."; $("senha").focus(); return; }
       $("btn-entrar").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Entrando…";
       const r = await chamar({ acao: "entrar", matricula: matriculaDigitada, senha });
       if (r.erro) { $("btn-entrar").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
@@ -121,17 +134,34 @@
     const pedirCodigo = async (modo) => {
       if (!lerMat()) return;
       modoCodigo = modo;
-      $("m").className = "eq-msg"; $("m").textContent = "Enviando código…";
+      const btn = modo === "recuperar" ? $("btn-esqueci") : $("btn-codigo");
+      btn.disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Enviando código…";
       const r = await chamar({ acao: "solicitar", matricula: matriculaDigitada });
+      btn.disabled = false;
       if (r.erro) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
       telaCodigo(r.email_mascarado);
     };
+    const trocarAba = (aba) => {
+      abaLogin = aba;
+      document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba));
+      document.querySelectorAll("[data-painel]").forEach((p) => (p.hidden = p.dataset.painel !== aba));
+      $("m").textContent = "";
+      (matriculaDigitada || $("mat").value) && aba === "senha" ? $("senha").focus() : $("mat").focus();
+    };
+    document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
+    $("ver-senha").onclick = () => {
+      const i = $("senha"); i.type = i.type === "password" ? "text" : "password";
+      $("ver-senha").textContent = i.type === "password" ? "Mostrar" : "Ocultar";
+    };
     $("btn-entrar").onclick = entrar;
-    $("senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
-    $("mat").addEventListener("keydown", (e) => { if (e.key === "Enter") $("senha").focus(); });
     $("btn-codigo").onclick = () => pedirCodigo("entrar");
     $("btn-esqueci").onclick = () => pedirCodigo("recuperar");
-    $("btn-primeiro").onclick = () => pedirCodigo("recuperar");
+    $("senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+    $("mat").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      abaLogin === "senha" ? $("senha").focus() : pedirCodigo("entrar");
+    });
+    (matriculaDigitada && abaLogin === "senha" ? $("senha") : $("mat")).focus();
   }
 
   function telaCodigo(emailMasc) {
