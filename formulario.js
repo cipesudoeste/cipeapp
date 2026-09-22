@@ -7,6 +7,7 @@ const TOTAL_STEPS = 8; // 0..7
 let currentStep = 0;
 let uploadedCnh = null; // {url, path, nome, tamanho}
 let uploadedBgo = null;
+let uploadedIdentidade = null;
 
 /* ---------------------------------------------------------
    Supabase
@@ -118,6 +119,8 @@ function preencherFormularioCompleto(cadastro) {
   setVal("c-identidade-motivo", d.identidadeMotivo);
   setVal("c-identidade-atualizada", d.identidadeAtualizada);
   setVal("c-identidade-ilegivel", d.identidadeIlegivel);
+  uploadedIdentidade = d.identidadeArquivo || null;
+  atualizarStatusArquivo("identidade-upload-status", uploadedIdentidade);
   setVal("c-data-admissao", d.dataAdmissao);
   setVal("c-data-ultima-promocao", d.dataUltimaPromocao);
   setVal("c-possui-bgo", d.possuiBgo);
@@ -396,6 +399,11 @@ function validarEtapaAtual() {
     }
   }
   // validações específicas por etapa
+  if (currentStep === 5 && val("c-possui-identidade") === "Sim" && !uploadedIdentidade) {
+    alert("Anexe a cópia da sua Identidade Funcional (frente e verso) antes de continuar.");
+    document.getElementById("c-identidade-arquivo").focus();
+    return false;
+  }
   if (currentStep === 6) {
     const marcados = document.querySelectorAll("#c-cursos-pm-list input:checked");
     if (marcados.length === 0) {
@@ -478,6 +486,10 @@ document.getElementById("c-bgo-arquivo").addEventListener("change", async (e) =>
   const file = e.target.files[0];
   if (file) uploadedBgo = await uploadArquivoCadastro(file, "bgo", "bgo-upload-status");
 });
+document.getElementById("c-identidade-arquivo").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (file) uploadedIdentidade = await uploadArquivoCadastro(file, "identidade", "identidade-upload-status");
+});
 
 /* ---------------------------------------------------------
    Coleta de todos os dados do formulário
@@ -548,6 +560,7 @@ function coletarDados() {
     identidadeMotivo: val("c-identidade-motivo"),
     identidadeAtualizada: val("c-identidade-atualizada"),
     identidadeIlegivel: val("c-identidade-ilegivel"),
+    identidadeArquivo: val("c-possui-identidade") === "Sim" ? uploadedIdentidade : null,
     dataAdmissao: val("c-data-admissao"),
     dataUltimaPromocao: val("c-data-ultima-promocao"),
     possuiBgo: val("c-possui-bgo"),
@@ -609,8 +622,10 @@ function resetarFormulario() {
   document.getElementById("codigo-resultado").textContent = "";
   document.getElementById("cnh-upload-status").textContent = "";
   document.getElementById("bgo-upload-status").textContent = "";
+  document.getElementById("identidade-upload-status").textContent = "";
   uploadedCnh = null;
   uploadedBgo = null;
+  uploadedIdentidade = null;
   cadastroEncontradoAnterior = null;
   emailParaVerificar = null;
   matriculaAtual = null;

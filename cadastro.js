@@ -351,6 +351,7 @@ function abrirModalCadastro(c) {
   const anexos = [];
   if (d.cnhArquivo) anexos.push({ label: "Cópia da CNH", ...d.cnhArquivo });
   if (d.bgoArquivo) anexos.push({ label: "BGO de Promoção", ...d.bgoArquivo });
+  if (d.identidadeArquivo) anexos.push({ label: "Identidade Funcional", ...d.identidadeArquivo });
 
   const identificacao =
     row("CPF", d.cpf) + row("RG", d.rg) + row("Órgão Expedidor", d.orgaoExpedidor) +

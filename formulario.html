@@ -414,6 +414,11 @@
               <label class="wf-label">Está ilegível ou danificada?*</label>
               <select class="ef-field" id="c-identidade-ilegivel"><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
             </div>
+            <div class="wf-row wf-wide wf-cond" data-show-if="c-possui-identidade=Sim">
+              <label class="wf-label">Cópia da Identidade Funcional (frente e verso)*</label>
+              <input type="file" class="ef-field" id="c-identidade-arquivo" accept="application/pdf,image/jpeg,image/png,image/webp">
+              <span id="identidade-upload-status" class="wf-upload-status"></span>
+            </div>
           </div>
         </div>
 
