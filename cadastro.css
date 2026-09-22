@@ -44,12 +44,19 @@
 .wf-cond{display:none;}
 .wf-cond.wf-visible{display:flex;}
 
-.wf-grid input.ef-field, .wf-grid select.ef-field, .wf-grid textarea.ef-field{
+.wf-grid input.ef-field, .wf-grid select.ef-field, .wf-grid textarea.ef-field,
+.wf-search-row input.ef-field{
   background:var(--bg-panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);
   padding:9px 11px;font-size:13px;
 }
-.wf-grid input.ef-field:focus, .wf-grid select.ef-field:focus, .wf-grid textarea.ef-field:focus{
+.wf-grid input.ef-field:focus, .wf-grid select.ef-field:focus, .wf-grid textarea.ef-field:focus,
+.wf-search-row input.ef-field:focus{
   outline:none;border-color:var(--cipe-brown-l);
+}
+.wf-search-row input.ef-field::placeholder{color:var(--ink-faint);}
+.wf-search-row input.ef-field:-webkit-autofill{
+  -webkit-box-shadow:0 0 0 1000px var(--bg-panel) inset;
+  -webkit-text-fill-color:var(--ink);
 }
 .wf-grid select.ef-field option{background:var(--bg-panel);color:var(--ink);}
 
