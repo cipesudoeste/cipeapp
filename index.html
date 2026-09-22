@@ -12,8 +12,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<style>body.adm-carregando .adm-card{visibility:hidden;}</style>
 </head>
-<body class="page-home">
+<body class="page-home adm-carregando">
 
 <div class="camo-trim camo-bg"></div>
 <header class="site-header">
@@ -194,5 +195,95 @@
   </div>
 </footer>
 
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+/* Home: mostra só os cards administrativos que o usuário logado pode abrir */
+(async function () {
+  const PAINEL_POR_PAGINA = {
+    "efetivo.html": "efetivo", "viaturas.html": "viaturas", "whatsapp.html": "whatsapp",
+    "cadastro.html": "cadastros", "oficios.html": "oficios",
+  };
+  const cards = [...document.querySelectorAll(".card")].filter((c) => {
+    const a = c.querySelector("a.card-link");
+    const pg = a && a.getAttribute("href");
+    if (pg && PAINEL_POR_PAGINA[pg]) { c.dataset.painel = PAINEL_POR_PAGINA[pg]; c.classList.add("adm-card"); return true; }
+    return false;
+  });
+  const grid = cards.length ? cards[0].parentElement : null;
+  const pronto = () => document.body.classList.remove("adm-carregando");
+
+  function cardEntrar() {
+    const c = document.createElement("div");
+    c.className = "card active";
+    c.innerHTML =
+      '<a class="card-link" href="login.html?next=index.html" aria-label="Entrar"></a>' +
+      '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>' +
+      '<h3>Acesso restrito</h3><p>Entre com seu e-mail para acessar os painéis administrativos liberados para você.</p>' +
+      '<div class="card-foot"><span class="badge soon">Login</span><span class="go">Entrar</span></div>';
+    return c;
+  }
+  function cardUsuarios() {
+    const c = document.createElement("div");
+    c.className = "card active";
+    c.innerHTML =
+      '<a class="card-link" href="usuarios.html" aria-label="Usuários e Permissões"></a>' +
+      '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></svg>' +
+      '<h3>Usuários e Permissões</h3><p>Defina quem acessa cada painel e se pode só consultar ou também editar.</p>' +
+      '<div class="card-foot"><span class="badge live">Master</span><span class="go">Gerenciar</span></div>';
+    return c;
+  }
+  function barra(sb, email) {
+    const b = document.createElement("div");
+    b.style.cssText = "position:fixed;right:10px;bottom:10px;z-index:9999;display:flex;align-items:center;gap:8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px 6px 12px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-muted);";
+    const t = document.createElement("span"); t.textContent = email;
+    const sair = document.createElement("button");
+    sair.textContent = "SAIR";
+    sair.style.cssText = "font:inherit;background:transparent;color:var(--accent);border:1px solid var(--line);border-radius:5px;padding:4px 8px;cursor:pointer;";
+    sair.onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    b.append(t, sair);
+    document.body.appendChild(b);
+  }
+
+  if (!grid) return pronto();
+  try {
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+    const { data: acesso } = session ? await sb.rpc("meu_acesso") : { data: null };
+
+    if (!acesso) {
+      cards.forEach((c) => c.remove());
+      grid.appendChild(cardEntrar());
+      if (session) {
+        const aviso = document.createElement("p");
+        aviso.style.cssText = "font-size:12.5px;color:var(--ink-faint);margin:10px 0 0;";
+        aviso.textContent = "A conta " + session.user.email + " não tem acesso a painéis administrativos.";
+        grid.after(aviso);
+        barra(sb, session.user.email);
+      }
+      return pronto();
+    }
+
+    const master = acesso.papel === "master";
+    const perm = acesso.permissoes || {};
+    cards.forEach((c) => {
+      const n = master ? "editar" : perm[c.dataset.painel];
+      if (n !== "editar" && n !== "ver") return c.remove();
+      if (n === "ver") {
+        const badge = c.querySelector(".badge");
+        if (badge) { badge.textContent = "Só leitura"; badge.className = "badge soon"; }
+      }
+    });
+    if (master) grid.appendChild(cardUsuarios());
+    if (!grid.querySelector(".card")) grid.appendChild(cardEntrar());
+    barra(sb, acesso.email);
+  } catch (e) {
+    console.error(e);
+    cards.forEach((c) => c.remove());
+    grid.appendChild(cardEntrar());
+  }
+  pronto();
+})();
+</script>
 </body>
 </html>

@@ -39,6 +39,52 @@
     document.body ? fn() : document.addEventListener("DOMContentLoaded", fn);
   }
 
+  // ---- o que fica bloqueado para quem só tem "Ver" ----
+  const BLOQUEIOS = {
+    viaturas: {
+      ocultar: "#btn-add-viatura,#btn-add-manut,.btn-add-update,.btn-remove-anexo,.btn-remove-doc,.btn-remove-manut,.btn-remove-viatura,.btn-edit-manut,#edit-save-btn,#update-save-btn,#anexo-file-input,#doc-file-input",
+      desativar: ".field-modelo,.field-placa,.field-prefixo,.field-km,.field-caracterizacao,.field-categoria,.field-status,#edit-indisponivel,#edit-data,#update-data,#doc-tipo,#edit-oficina,#edit-sei,#edit-km,#edit-tipo,#edit-desc,#update-texto",
+    },
+    efetivo: {
+      ocultar: "#btn-bulk-toggle,#btn-add-row,#btn-bulk-import,.btn-remove,.btn-ferias-del,#btn-ferias-add",
+      desativar: ".field-matricula,.field-nome,.field-reserva-data,.field-posto,.field-reserva-pedida,#ferias-inicio,#ferias-fim,#ferias-obs,#metas-list input,#metas-list select",
+    },
+    oficios: {
+      ocultar: "#btn-upload,#upload-input,.btn-resolver,#btn-salvar-resolucao",
+      desativar: "#rf-nome,#rf-endereco,#rf-email,#rf-telefone",
+    },
+    whatsapp: {
+      ocultar: "#btn-enviar-msg,#btn-sincronizar-contatos,#btn-enviar-transmissao",
+      desativar: "",
+    },
+    cadastros: { ocultar: "", desativar: "" },
+  };
+
+  function aplicarSomenteLeitura() {
+    const b = BLOQUEIOS[painel];
+    if (!b) return;
+    if (b.ocultar) {
+      const css = document.createElement("style");
+      css.textContent = b.ocultar + "{display:none !important;}";
+      document.head.appendChild(css);
+      // segurança extra: bloqueia o clique mesmo que algo reapareça
+      document.addEventListener("click", (e) => {
+        if (e.target.closest && e.target.closest(b.ocultar)) {
+          e.preventDefault(); e.stopImmediatePropagation();
+        }
+      }, true);
+    }
+    if (b.desativar) {
+      const travar = () => document.querySelectorAll(b.desativar).forEach((el) => {
+        if (!el.disabled) { el.disabled = true; el.title = "Somente leitura"; }
+      });
+      onReady(() => {
+        travar();
+        new MutationObserver(travar).observe(document.body, { childList: true, subtree: true });
+      });
+    }
+  }
+
   function telaSemAcesso(email) {
     onReady(() => {
       document.body.innerHTML =
@@ -73,6 +119,7 @@
 
     window.usuarioAcesso = acesso;
     window.podeEditar = n === "editar";
+    if (n === "ver") aplicarSomenteLeitura();
     document.documentElement.dataset.nivel = n;
     mostrarBarra(acesso, n);
     document.dispatchEvent(new CustomEvent("auth-pronto", { detail: { acesso, nivel: n } }));
