@@ -97,7 +97,7 @@
       telaCodigo(r.email_mascarado);
     };
     $("btn-mat").onclick = enviar;
-    $("mat").onkeydown = (e) => e.key === "Enter" && enviar();
+    $("mat").addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
   }
 
   function telaCodigo(emailMasc) {
@@ -126,7 +126,7 @@
       carregarMinhaResposta();
     };
     $("btn-cod").onclick = confirmar;
-    $("cod").onkeydown = (e) => e.key === "Enter" && confirmar();
+    $("cod").addEventListener("keydown", (e) => { if (e.key === "Enter") confirmar(); });
     $("trocar").onclick = () => telaMatricula();
     $("reenviar").onclick = async () => {
       $("m").className = "eq-msg"; $("m").textContent = "Enviando…";
