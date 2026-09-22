@@ -40,7 +40,7 @@
   let enquete = null, quem = null, matriculaDigitada = "";
 
   const ERROS = {
-    matricula_invalida: "Digite a matrícula só com números (8 dígitos).",
+    matricula_invalida: "A matrícula tem exatamente 8 números.",
     matricula_nao_encontrada: "Matrícula não encontrada no efetivo da CIPE Sudoeste. Confira os números ou procure a SRHS.",
     sem_email: "Sua matrícula não tem e-mail cadastrado. Faça a Atualização Cadastral ou procure a SRHS.",
     aguarde: "Um código acabou de ser enviado. Aguarde um minuto antes de pedir outro.",
@@ -94,7 +94,7 @@
       </div>
 
       <label class="eq-lbl" for="mat">Matrícula</label>
-      <input class="eq-in eqp-grande" id="mat" inputmode="numeric" maxlength="10" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username">
+      <input class="eq-in eqp-grande" id="mat" inputmode="numeric" maxlength="8" pattern="\d{8}" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username">
 
       <div data-painel="senha" ${abaLogin === "senha" ? "" : "hidden"}>
         <label class="eq-lbl" for="senha">Senha</label>
@@ -117,7 +117,7 @@
 
     const lerMat = () => {
       matriculaDigitada = $("mat").value.replace(/\D/g, "");
-      if (matriculaDigitada.length < 6) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS.matricula_invalida; $("mat").focus(); return false; }
+      if (matriculaDigitada.length !== 8) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS.matricula_invalida; $("mat").focus(); return false; }
       return true;
     };
     const entrar = async () => {
@@ -149,6 +149,7 @@
       (matriculaDigitada || $("mat").value) && aba === "senha" ? $("senha").focus() : $("mat").focus();
     };
     document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
+    $("mat").addEventListener("input", () => { $("mat").value = $("mat").value.replace(/\D/g, "").slice(0, 8); });
     $("ver-senha").onclick = () => {
       const i = $("senha"); i.type = i.type === "password" ? "text" : "password";
       $("ver-senha").textContent = i.type === "password" ? "Mostrar" : "Ocultar";

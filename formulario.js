@@ -165,10 +165,10 @@ function mascararEmail(email) {
 }
 
 async function buscarMatricula() {
-  const matricula = document.getElementById("c-busca-matricula").value.trim();
+  const matricula = document.getElementById("c-busca-matricula").value.replace(/\D/g, "");
   const resultEl = document.getElementById("busca-resultado");
-  if (!matricula) {
-    resultEl.textContent = "Digite a matrícula antes de buscar.";
+  if (matricula.length !== 8) {
+    resultEl.textContent = "A matrícula tem exatamente 8 números.";
     resultEl.className = "wf-search-result notfound";
     return;
   }
@@ -587,7 +587,11 @@ function coletarDados() {
 document.getElementById("wiz-btn-enviar").addEventListener("click", async () => {
   if (!validarEtapaAtual()) return;
   const nome = val("c-nome");
-  const matricula = val("c-matricula");
+  const matricula = val("c-matricula").replace(/\D/g, "");
+  if (matricula.length !== 8) {
+    alert("A matrícula precisa ter exatamente 8 números (confira a etapa Informações Funcionais).");
+    return;
+  }
   if (!nome || !matricula) {
     alert("Nome e matrícula são obrigatórios (confira as etapas anteriores).");
     return;
@@ -706,3 +710,9 @@ if (campoEstado) campoEstado.addEventListener("input", () => (campoEstado.value 
 --------------------------------------------------------- */
 updateConditionals();
 renderProgress();
+
+/* matrícula: só números, no máximo 8 */
+["c-busca-matricula", "c-matricula"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", () => { el.value = el.value.replace(/\D/g, "").slice(0, 8); });
+});

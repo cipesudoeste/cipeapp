@@ -108,8 +108,9 @@ async function saveToCloud() {
     .upsert({ id: 1, qdl, include_rrc: includeRRC, updated_at: new Date().toISOString() });
   if (e1) console.error(e1);
 
+  // só grava quem tem matrícula completa (8 números); as incompletas ficam na tela até corrigir
   const rows = roster
-    .filter((r) => (r.matricula || "").trim() !== "")
+    .filter((r) => /^\d{8}$/.test((r.matricula || "").trim()))
     .map((r) => ({
       matricula: r.matricula.trim(),
       nome: r.nome || "",
@@ -449,7 +450,7 @@ function renderRoster() {
         <select class="ef-field field-posto">${POSTOS.map((p) => `<option value="${p}" ${p === r.posto ? "selected" : ""}>${p}</option>`).join("")}</select>
       </td>
       <td data-label="Nome"><input class="ef-field field-nome" value="${escapeHtml(r.nome)}"></td>
-      <td data-label="Matrícula"><input class="ef-field field-matricula" style="width:120px;" value="${escapeHtml(r.matricula)}"></td>
+      <td data-label="Matrícula"><input class="ef-field field-matricula" style="width:120px;" inputmode="numeric" maxlength="8" placeholder="8 números" value="${escapeHtml(r.matricula)}"></td>
       <td data-label="Férias">
         <span class="badge-status ${st.ativo ? "bad" : "mid"}">${st.texto}</span>
         <button class="icon-btn btn-ferias" title="Gerenciar férias" data-matricula="${escapeHtml(r.matricula)}" ${temMatricula ? "" : "disabled"}>
@@ -770,7 +771,11 @@ document.getElementById("roster-tbody").addEventListener("change", (e) => {
   if (!item) return;
   if (e.target.classList.contains("field-posto")) item.posto = e.target.value;
   if (e.target.classList.contains("field-nome")) item.nome = e.target.value;
-  if (e.target.classList.contains("field-matricula")) item.matricula = e.target.value;
+  if (e.target.classList.contains("field-matricula")) {
+    e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8);
+    item.matricula = e.target.value;
+    e.target.style.borderColor = item.matricula && item.matricula.length !== 8 ? "#b0553f" : "";
+  }
   if (e.target.classList.contains("field-reserva-data")) item.reservaData = e.target.value;
   if (e.target.classList.contains("field-reserva-pedida")) item.reservaPedida = e.target.value === "sim";
   persist();
@@ -860,13 +865,20 @@ document.getElementById("btn-bulk-import").addEventListener("click", () => {
   const text = document.getElementById("bulk-text").value;
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   let nextId = Math.max(0, ...roster.map((r) => r.id));
+  const invalidas = [];
   lines.forEach((line) => {
-    const [posto, nome, matricula] = line.split("\t").map((p) => (p || "").trim());
+    const [posto, nome, matriculaBruta] = line.split("\t").map((p) => (p || "").trim());
+    const matricula = (matriculaBruta || "").replace(/\D/g, "");
+    if (matricula.length !== 8) { invalidas.push(line); return; }
     nextId += 1;
     roster.push({ id: nextId, posto: posto || "SD 1ª Cl PM", nome: nome || "", matricula: matricula || "", reservaData: "", reservaPedida: false });
   });
-  document.getElementById("bulk-text").value = "";
-  document.getElementById("bulk-box").style.display = "none";
+  document.getElementById("bulk-text").value = invalidas.join("\n");
+  if (invalidas.length) {
+    alert(invalidas.length + " linha(s) não foram importadas porque a matrícula não tem 8 números. Elas ficaram na caixa para você corrigir.");
+  } else {
+    document.getElementById("bulk-box").style.display = "none";
+  }
   persist();
   renderRoster();
   renderDiagnose();
