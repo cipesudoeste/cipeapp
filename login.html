@@ -91,8 +91,8 @@
   async function entrarSeJaLogado() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const { data: papel } = await sb.rpc("meu_papel");
-    if (papel) location.replace(destino);
+    const { data: acesso } = await sb.rpc("meu_acesso");
+    if (acesso) location.replace(destino);
   }
   if (params.get("motivo") !== "sem-acesso") entrarSeJaLogado();
 
@@ -101,7 +101,7 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg("Informe um e-mail válido.", true);
     $("btn-enviar").disabled = true;
     msg("Enviando código...");
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
     $("btn-enviar").disabled = false;
     if (error) {
       console.error(error);
@@ -124,8 +124,8 @@
       $("btn-verificar").disabled = false;
       return msg("Código inválido ou expirado.", true);
     }
-    const { data: papel } = await sb.rpc("meu_papel");
-    if (!papel) {
+    const { data: acesso } = await sb.rpc("meu_acesso");
+    if (!acesso) {
       await sb.auth.signOut();
       $("btn-verificar").disabled = false;
       etapa("etapa-email");

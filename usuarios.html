@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPE Sudoeste — Usuários e Permissões</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shared.css">
+<style>
+  .us-wrap{max-width:1000px;margin:0 auto;padding:22px 16px 80px;}
+  .us-head{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .us-head h1{font-family:var(--font-display);font-size:22px;font-weight:600;margin:0;color:var(--ink);flex:1;}
+  .us-help{font-size:12.5px;color:var(--ink-muted);line-height:1.6;margin:0 0 18px;}
+  .us-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px;}
+  .us-card h2{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--accent);margin:0 0 12px;}
+  .us-field{background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:9px 11px;font-size:13px;font-family:inherit;width:100%;}
+  .us-field:focus{outline:none;border-color:var(--cipe-brown-l);}
+  .us-field::placeholder{color:var(--ink-faint);}
+  .us-novo{display:grid;grid-template-columns:1fr;gap:8px;}
+  @media(min-width:720px){.us-novo{grid-template-columns:1.3fr 1.3fr 1fr auto;align-items:center;}}
+  .us-sug{position:relative;}
+  .us-sug-list{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:6px;max-height:220px;overflow:auto;display:none;}
+  .us-sug-list div{padding:8px 10px;font-size:12.5px;cursor:pointer;color:var(--ink-muted);}
+  .us-sug-list div:hover{background:var(--bg-panel);color:var(--ink);}
+  .us-sug-list small{color:var(--ink-faint);font-family:var(--font-mono);}
+  .us-table-wrap{overflow-x:auto;}
+  table.us-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px;}
+  .us-table th{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);font-weight:500;}
+  .us-table td{padding:8px 6px;border-bottom:1px solid var(--line-soft);vertical-align:middle;color:var(--ink);}
+  .us-table tr.inativo td{opacity:.45;}
+  .us-table select{background:var(--bg);border:1px solid var(--line);border-radius:5px;color:var(--ink);padding:5px 6px;font-size:12px;}
+  .us-table select.nv-editar{border-color:var(--accent);color:var(--accent);}
+  .us-table select.nv-ver{border-color:var(--accent-dim);}
+  .us-email{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-muted);}
+  .us-acoes{display:flex;gap:6px;justify-content:flex-end;}
+  .us-acoes .ef-btn{padding:5px 9px;font-size:10.5px;}
+  .us-master{font-family:var(--font-mono);font-size:10px;color:var(--accent);text-transform:uppercase;}
+  .us-msg{font-size:12.5px;min-height:18px;margin-top:10px;color:var(--ink-muted);}
+  .us-msg.erro{color:#e08a72;}
+  .us-legenda{font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="camo-trim camo-bg"></div>
+<div class="us-wrap">
+  <div class="us-head">
+    <a class="home-btn" href="index.html" title="Voltar para a página inicial">←</a>
+    <h1>Usuários e Permissões</h1>
+  </div>
+  <p class="us-help">Defina quem acessa cada painel. <b>Ver</b> = só consulta. <b>Editar</b> = consulta e altera. A pessoa entra em <b>login.html</b> com o e-mail cadastrado aqui e recebe um código.</p>
+
+  <div class="us-card">
+    <h2>Adicionar usuário</h2>
+    <div class="us-novo">
+      <div class="us-sug">
+        <input class="us-field" id="novo-busca" placeholder="Buscar no efetivo (nome ou matrícula)" autocomplete="off">
+        <div class="us-sug-list" id="novo-sug"></div>
+      </div>
+      <input class="us-field" id="novo-email" type="email" placeholder="E-mail de login">
+      <input class="us-field" id="novo-nome" placeholder="Nome">
+      <button type="button" class="ef-btn primary" id="btn-adicionar">Adicionar</button>
+    </div>
+    <div class="us-msg" id="novo-msg"></div>
+  </div>
+
+  <div class="us-card">
+    <h2>Usuários</h2>
+    <div class="us-table-wrap">
+      <table class="us-table">
+        <thead><tr id="us-thead"></tr></thead>
+        <tbody id="us-tbody"><tr><td>Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="us-legenda">Alterações nas permissões são salvas na hora. A pessoa precisa atualizar a página (ou entrar de novo) para valer.</div>
+    <div class="us-msg" id="lista-msg"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js" data-painel="usuarios"></script>
+<script>
+const PAINEIS = [
+  ["efetivo", "Efetivo"],
+  ["cadastros", "Cadastros"],
+  ["oficios", "Ofícios"],
+  ["viaturas", "Viaturas"],
+  ["whatsapp", "WhatsApp"],
+];
+let usuarios = [];
+let efetivo = [];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function msg(id, texto, erro) {
+  $(id).textContent = texto || "";
+  $(id).className = "us-msg" + (erro ? " erro" : "");
+}
+
+async function carregar() {
+  const sb = window.sbAuth;
+  const { data, error } = await sb.from("admins").select("*").order("papel").order("nome");
+  if (error) return msg("lista-msg", "Erro ao carregar: " + error.message, true);
+  usuarios = data || [];
+  render();
+  const { data: pol } = await sb.from("policiais").select("matricula, nome, posto, email").eq("ativo", true).order("nome");
+  efetivo = pol || [];
+}
+
+function render() {
+  $("us-thead").innerHTML =
+    "<th>Usuário</th>" + PAINEIS.map(([, rot]) => `<th>${rot}</th>`).join("") + "<th></th>";
+  const eu = (window.usuarioAcesso || {}).email;
+  $("us-tbody").innerHTML = usuarios.map((u) => {
+    const master = u.papel === "master";
+    const proprio = u.email === eu;
+    const cols = PAINEIS.map(([k]) => {
+      if (master) return `<td><span class="us-master">total</span></td>`;
+      const v = (u.permissoes || {})[k] || "";
+      return `<td><select data-email="${esc(u.email)}" data-painel="${k}" class="${v ? "nv-" + v : ""}">
+        <option value="" ${!v ? "selected" : ""}>—</option>
+        <option value="ver" ${v === "ver" ? "selected" : ""}>Ver</option>
+        <option value="editar" ${v === "editar" ? "selected" : ""}>Editar</option>
+      </select></td>`;
+    }).join("");
+    const acoes = proprio ? `<span class="us-master">você</span>` : `
+      <button class="ef-btn" data-acao="master" data-email="${esc(u.email)}">${master ? "Tirar master" : "Tornar master"}</button>
+      <button class="ef-btn" data-acao="ativo" data-email="${esc(u.email)}">${u.ativo ? "Bloquear" : "Reativar"}</button>
+      <button class="ef-btn" data-acao="remover" data-email="${esc(u.email)}">Remover</button>`;
+    return `<tr class="${u.ativo ? "" : "inativo"}">
+      <td><div>${esc(u.nome || "—")}${master ? ' <span class="us-master">· master</span>' : ""}</div><div class="us-email">${esc(u.email)}</div></td>
+      ${cols}<td><div class="us-acoes">${acoes}</div></td></tr>`;
+  }).join("") || `<tr><td>Nenhum usuário.</td></tr>`;
+}
+
+async function salvar(email, alteracao) {
+  const { error } = await window.sbAuth.from("admins")
+    .update({ ...alteracao, atualizado_em: new Date().toISOString() }).eq("email", email);
+  if (error) { msg("lista-msg", "Erro ao salvar: " + error.message, true); return false; }
+  const u = usuarios.find((x) => x.email === email);
+  Object.assign(u, alteracao);
+  msg("lista-msg", "Salvo.");
+  setTimeout(() => msg("lista-msg", ""), 1500);
+  return true;
+}
+
+$("us-tbody").addEventListener("change", async (e) => {
+  const sel = e.target.closest("select[data-painel]");
+  if (!sel) return;
+  const u = usuarios.find((x) => x.email === sel.dataset.email);
+  const permissoes = { ...(u.permissoes || {}) };
+  if (sel.value) permissoes[sel.dataset.painel] = sel.value;
+  else delete permissoes[sel.dataset.painel];
+  sel.className = sel.value ? "nv-" + sel.value : "";
+  await salvar(u.email, { permissoes });
+});
+
+$("us-tbody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-acao]");
+  if (!btn) return;
+  const u = usuarios.find((x) => x.email === btn.dataset.email);
+  if (btn.dataset.acao === "master") {
+    const vira = u.papel !== "master";
+    if (vira && !confirm(`Tornar ${u.email} MASTER? Ele terá acesso total, inclusive a esta tela.`)) return;
+    if (await salvar(u.email, { papel: vira ? "master" : "usuario" })) render();
+  }
+  if (btn.dataset.acao === "ativo") {
+    if (await salvar(u.email, { ativo: !u.ativo })) render();
+  }
+  if (btn.dataset.acao === "remover") {
+    if (!confirm(`Remover ${u.email} da lista de usuários?`)) return;
+    const { error } = await window.sbAuth.from("admins").delete().eq("email", u.email);
+    if (error) return msg("lista-msg", "Erro ao remover: " + error.message, true);
+    usuarios = usuarios.filter((x) => x !== u);
+    render();
+  }
+});
+
+// busca no efetivo para preencher nome/e-mail
+$("novo-busca").addEventListener("input", () => {
+  const q = $("novo-busca").value.trim().toLowerCase();
+  const box = $("novo-sug");
+  if (q.length < 2) { box.style.display = "none"; return; }
+  const achados = efetivo.filter((p) =>
+    (p.nome || "").toLowerCase().includes(q) || (p.matricula || "").includes(q)).slice(0, 12);
+  box.innerHTML = achados.map((p, i) =>
+    `<div data-i="${efetivo.indexOf(p)}">${esc(p.posto || "")} ${esc(p.nome)} <small>${esc(p.matricula)}${p.email ? " · " + esc(p.email) : " · sem e-mail"}</small></div>`
+  ).join("") || `<div>Nada encontrado</div>`;
+  box.style.display = "block";
+});
+$("novo-sug").addEventListener("click", (e) => {
+  const d = e.target.closest("div[data-i]");
+  if (!d) return;
+  const p = efetivo[+d.dataset.i];
+  $("novo-nome").value = [p.posto, p.nome].filter(Boolean).join(" ");
+  $("novo-email").value = p.email || "";
+  $("novo-busca").value = "";
+  $("novo-sug").style.display = "none";
+  if (!p.email) $("novo-email").focus();
+});
+document.addEventListener("click", (e) => { if (!e.target.closest(".us-sug")) $("novo-sug").style.display = "none"; });
+
+$("btn-adicionar").addEventListener("click", async () => {
+  const email = $("novo-email").value.trim().toLowerCase();
+  const nome = $("novo-nome").value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg("novo-msg", "Informe um e-mail válido.", true);
+  if (usuarios.some((u) => u.email === email)) return msg("novo-msg", "Esse e-mail já está na lista.", true);
+  const { data, error } = await window.sbAuth.from("admins")
+    .insert({ email, nome: nome || null, papel: "usuario", permissoes: {} }).select().single();
+  if (error) return msg("novo-msg", "Erro ao adicionar: " + error.message, true);
+  usuarios.push(data);
+  render();
+  $("novo-email").value = ""; $("novo-nome").value = "";
+  msg("novo-msg", "Adicionado. Agora marque os painéis que ele pode acessar na tabela abaixo.");
+});
+
+document.addEventListener("auth-pronto", carregar);
+</script>
+</body>
+</html>
