@@ -29,6 +29,7 @@
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="senha-ui.js"></script>
 <script>
 (function () {
   // sessão separada da dos painéis, para não derrubar o login de quem administra
@@ -46,6 +47,8 @@
     falha_envio: "Não foi possível enviar o código agora. Tente novamente em instantes.",
     codigo_invalido: "Código incorreto ou expirado. Confira o e-mail ou peça um novo código.",
     falha_interna: "Erro no servidor. Tente novamente em instantes.",
+    senha_invalida: "Matrícula ou senha incorretos. Se ainda não criou senha, use \"Primeiro acesso\".",
+    bloqueado: "Muitas tentativas erradas. Aguarde 15 minutos e tente de novo.",
   };
 
   function tela(html) { $("etapa").innerHTML = html; }
@@ -77,33 +80,64 @@
     telaMatricula();
   }
 
+  let modoCodigo = "entrar"; // entrar | recuperar
+  const METODO = "cipe-enquete-metodo";
+
   function telaMatricula(erro) {
     tela(`<div class="eqp-box">
       <h2>Identifique-se</h2>
-      <p>Informe sua matrícula. Vamos enviar um código para o e-mail do seu cadastro.</p>
+      <p>Entre com sua matrícula e senha, ou receba um código no e-mail do seu cadastro.</p>
+      <label class="eq-lbl" for="mat">Matrícula</label>
+      <input class="eq-in" id="mat" inputmode="numeric" maxlength="10" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username" style="margin-bottom:10px;">
+      <label class="eq-lbl" for="senha">Senha</label>
       <div class="eqp-linha">
-        <input class="eq-in" id="mat" inputmode="numeric" maxlength="10" placeholder="Matrícula (8 números)" value="${esc(matriculaDigitada)}" autocomplete="off">
-        <button type="button" class="ef-btn primary" id="btn-mat">Enviar código</button>
+        <input class="eq-in" id="senha" type="password" autocomplete="current-password">
+        <button type="button" class="ef-btn primary" id="btn-entrar">Entrar</button>
       </div>
       <div class="eq-msg ${erro ? "erro" : ""}" id="m" style="margin-top:10px;">${esc(erro || "")}</div>
+      <button type="button" class="ef-btn" id="btn-codigo" style="width:100%;justify-content:center;margin-top:6px;">Receber código por e-mail</button>
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap;">
+        <button type="button" class="eqp-link" id="btn-esqueci">Esqueci minha senha</button>
+        <button type="button" class="eqp-link" id="btn-primeiro">Primeiro acesso</button>
+      </div>
     </div>`);
-    $("mat").focus();
-    const enviar = async () => {
+    (matriculaDigitada ? $("senha") : $("mat")).focus();
+    const lerMat = () => {
       matriculaDigitada = $("mat").value.replace(/\D/g, "");
-      if (matriculaDigitada.length < 6) return ($("m").textContent = ERROS.matricula_invalida, $("m").className = "eq-msg erro");
-      $("btn-mat").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Enviando…";
+      if (matriculaDigitada.length < 6) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS.matricula_invalida; $("mat").focus(); return false; }
+      return true;
+    };
+    const entrar = async () => {
+      if (!lerMat()) return;
+      const senha = $("senha").value;
+      if (!senha) { $("m").className = "eq-msg erro"; $("m").textContent = "Digite sua senha, ou receba um código por e-mail."; return; }
+      $("btn-entrar").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Entrando…";
+      const r = await chamar({ acao: "entrar", matricula: matriculaDigitada, senha });
+      if (r.erro) { $("btn-entrar").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
+      await sb.auth.setSession(r.session);
+      sessionStorage.setItem(METODO, "senha");
+      carregarMinhaResposta();
+    };
+    const pedirCodigo = async (modo) => {
+      if (!lerMat()) return;
+      modoCodigo = modo;
+      $("m").className = "eq-msg"; $("m").textContent = "Enviando código…";
       const r = await chamar({ acao: "solicitar", matricula: matriculaDigitada });
-      if (r.erro) { $("btn-mat").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
+      if (r.erro) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
       telaCodigo(r.email_mascarado);
     };
-    $("btn-mat").onclick = enviar;
-    $("mat").addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
+    $("btn-entrar").onclick = entrar;
+    $("senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+    $("mat").addEventListener("keydown", (e) => { if (e.key === "Enter") $("senha").focus(); });
+    $("btn-codigo").onclick = () => pedirCodigo("entrar");
+    $("btn-esqueci").onclick = () => pedirCodigo("recuperar");
+    $("btn-primeiro").onclick = () => pedirCodigo("recuperar");
   }
 
   function telaCodigo(emailMasc) {
     tela(`<div class="eqp-box">
       <h2>Digite o código</h2>
-      <p>Enviamos um código para <b>${esc(emailMasc)}</b>. Pode levar um minuto; confira também a caixa de spam.</p>
+      <p>${modoCodigo === "recuperar" ? "Para criar sua senha, confirme que é você. " : ""}Enviamos um código para <b>${esc(emailMasc)}</b>. Pode levar um minuto; confira também a caixa de spam.</p>
       <div class="eqp-linha">
         <input class="eq-in" id="cod" inputmode="numeric" maxlength="10" autocomplete="one-time-code" placeholder="Código" style="letter-spacing:.25em;text-align:center;font-family:var(--font-mono);">
         <button type="button" class="ef-btn primary" id="btn-cod">Confirmar</button>
@@ -111,7 +145,7 @@
       <div class="eq-msg" id="m" style="margin-top:10px;"></div>
       <div style="display:flex;gap:16px;margin-top:14px;">
         <button type="button" class="eqp-link" id="reenviar">Enviar outro código</button>
-        <button type="button" class="eqp-link" id="trocar">Trocar matrícula</button>
+        <button type="button" class="eqp-link" id="trocar">Voltar</button>
       </div>
       <p style="margin:14px 0 0;font-size:12px;">Não tem mais acesso a esse e-mail? Procure a SRHS para atualizar seu cadastro.</p>
     </div>`);
@@ -123,6 +157,23 @@
       const r = await chamar({ acao: "verificar", matricula: matriculaDigitada, codigo });
       if (r.erro) { $("btn-cod").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
       await sb.auth.setSession(r.session);
+      sessionStorage.setItem(METODO, "codigo");
+      const { data: temSenha } = await sb.rpc("tenho_senha");
+      if (modoCodigo === "recuperar" || !temSenha) {
+        const box = document.createElement("div");
+        box.className = "eqp-box";
+        tela(""); $("etapa").appendChild(box);
+        SenhaUI.montar(box, sb, {
+          titulo: temSenha ? "Nova senha" : "Criar senha",
+          texto: temSenha ? "Defina a nova senha. Ela vale para as próximas enquetes." :
+            "Crie uma senha para entrar só com matrícula e senha nas próximas enquetes. Você continua podendo usar o código por e-mail.",
+          botao: "Salvar e continuar",
+          pularTexto: modoCodigo === "recuperar" ? null : "Agora não",
+          aoConcluir: () => { sessionStorage.setItem(METODO, "senha"); carregarMinhaResposta(); },
+          aoPular: carregarMinhaResposta,
+        });
+        return;
+      }
       carregarMinhaResposta();
     };
     $("btn-cod").onclick = confirmar;
@@ -136,8 +187,35 @@
     };
   }
 
+  async function telaAlterarSenha() {
+    const { data: { session } } = await sb.auth.getSession();
+    const { data: temSenha } = await sb.rpc("tenho_senha");
+    const exigirAtual = !!temSenha && sessionStorage.getItem(METODO) !== "codigo";
+    tela(`<div class="eqp-box" id="box-senha"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;">
+        <button type="button" class="eqp-link" id="voltar-enquete">Voltar para a enquete</button>
+        ${exigirAtual ? `<button type="button" class="eqp-link" id="esqueci-atual">Esqueci minha senha atual</button>` : ""}
+      </div>`);
+    SenhaUI.montar($("box-senha"), sb, {
+      titulo: temSenha ? "Alterar senha" : "Criar senha",
+      exigirAtual, email: session.user.email,
+      botao: temSenha ? "Alterar senha" : "Criar senha",
+      aoConcluir: () => { sessionStorage.setItem(METODO, "senha"); carregarMinhaResposta(); },
+    });
+    $("voltar-enquete").onclick = carregarMinhaResposta;
+    if (exigirAtual) $("esqueci-atual").onclick = async () => {
+      await sb.auth.signOut();
+      modoCodigo = "recuperar";
+      const r = await chamar({ acao: "solicitar", matricula: quem.matricula });
+      matriculaDigitada = quem.matricula;
+      if (r.erro) return telaMatricula(ERROS[r.erro] || ERROS.falha_interna);
+      telaCodigo(r.email_mascarado);
+    };
+  }
+
   async function sair() {
     await sb.auth.signOut();
+    sessionStorage.removeItem(METODO);
     quem = null;
     telaMatricula();
   }
@@ -147,7 +225,7 @@
     const { data, error } = await sb.rpc("minha_resposta", { p_enquete: id });
     if (error || !data || data.motivo === "nao_verificado") { await sb.auth.signOut(); return telaMatricula(); }
     quem = data;
-    const topo = `<div class="eqp-quem"><span>Respondendo como <b>${esc(data.nome || data.matricula)}</b></span><button type="button" class="eqp-link" id="sair">Não sou eu</button></div>`;
+    const topo = `<div class="eqp-quem"><span>Respondendo como <b>${esc(data.nome || data.matricula)}</b></span><span style="display:flex;gap:14px;"><button type="button" class="eqp-link" id="minha-senha">Minha senha</button><button type="button" class="eqp-link" id="sair">Sair</button></span></div>`;
     if (data.motivo === "fora_do_publico") {
       tela(topo + `<div class="eqp-box"><h2>Esta enquete não é para você</h2><p style="margin:0;">Ela foi enviada apenas para outros locais de trabalho. Se achar que é um engano, procure a SRHS.</p></div>`);
     } else if (!data.pode) {
@@ -165,6 +243,7 @@
       $("f").addEventListener("submit", (e) => { e.preventDefault(); enviar(); });
     }
     $("sair").onclick = sair;
+    $("minha-senha").onclick = telaAlterarSenha;
   }
 
   function campo(q, i) {

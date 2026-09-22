@@ -13,22 +13,30 @@
 <link rel="stylesheet" href="shared.css">
 <style>
   .login-wrap{min-height:calc(100vh - 7px);display:flex;align-items:center;justify-content:center;padding:24px 16px;}
-  .login-card{width:100%;max-width:380px;background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:28px 24px 24px;text-align:center;}
-  .login-logos{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;}
+  .login-card{width:100%;max-width:390px;background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:28px 24px 24px;}
+  .login-logos{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;}
   .login-logos img{height:44px;}
-  .login-eyebrow{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);}
-  .login-title{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink);margin:4px 0 6px;}
-  .login-help{font-size:12.5px;color:var(--ink-muted);line-height:1.6;margin:0 0 18px;}
+  .login-title{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink);margin:0 0 4px;text-align:center;}
+  .login-sub{font-size:12.5px;color:var(--ink-faint);text-align:center;margin:0 0 20px;}
+  .login-help{font-size:12.5px;color:var(--ink-muted);line-height:1.6;margin:0 0 14px;}
+  .login-lbl{display:block;font-size:11.5px;color:var(--ink-faint);margin-bottom:5px;}
   .login-field{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:7px;color:var(--ink);
-    padding:11px 12px;font-size:14px;font-family:inherit;margin-bottom:10px;}
+    padding:11px 12px;font-size:14px;font-family:inherit;margin-bottom:12px;}
   .login-field:focus{outline:none;border-color:var(--cipe-brown-l);}
   .login-field::placeholder{color:var(--ink-faint);}
   .login-field.codigo{letter-spacing:.3em;text-align:center;font-family:var(--font-mono);font-size:18px;}
+  .login-senha{position:relative;}
+  .login-senha .login-field{padding-right:70px;}
+  .login-ver{position:absolute;right:7px;top:7px;background:none;border:1px solid var(--line);border-radius:5px;color:var(--ink-faint);font-size:11px;padding:5px 8px;cursor:pointer;}
   .login-btn{width:100%;justify-content:center;padding:11px 14px;}
+  .login-sep{display:flex;align-items:center;gap:10px;color:var(--ink-faint);font-size:11.5px;margin:16px 0 12px;}
+  .login-sep::before,.login-sep::after{content:"";flex:1;height:1px;background:var(--line);}
+  .login-alt{width:100%;justify-content:center;}
+  .login-links{display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .login-link{background:none;border:none;color:var(--ink-faint);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:0;}
+  .login-link:hover{color:var(--accent);}
   .login-msg{min-height:18px;margin-top:12px;font-size:12.5px;color:var(--ink-muted);line-height:1.5;}
   .login-msg.erro{color:#e08a72;}
-  .login-link{background:none;border:none;color:var(--ink-faint);font-size:12px;margin-top:14px;cursor:pointer;text-decoration:underline;}
-  .login-link:hover{color:var(--accent);}
   .etapa{display:none;} .etapa.ativa{display:block;}
 </style>
 </head>
@@ -40,21 +48,40 @@
       <img src="img/logo-cipe.png" alt="CIPE Sudoeste">
       <img src="img/logo-pmba.png" alt="Polícia Militar da Bahia">
     </div>
-    <div class="login-eyebrow">CIPE Sudoeste · Acesso restrito</div>
     <div class="login-title">Entrar no painel</div>
+    <div class="login-sub">CIPE Sudoeste · acesso restrito</div>
 
-    <div class="etapa ativa" id="etapa-email">
-      <p class="login-help">Informe seu e-mail. Enviaremos um código de acesso.</p>
-      <input type="email" class="login-field" id="login-email" placeholder="seuemail@exemplo.com" autocomplete="email">
-      <button type="button" class="ef-btn primary login-btn" id="btn-enviar">Enviar código</button>
+    <!-- 1. e-mail + senha -->
+    <div class="etapa ativa" id="etapa-senha">
+      <label class="login-lbl" for="login-email">E-mail</label>
+      <input type="email" class="login-field" id="login-email" placeholder="seuemail@exemplo.com" autocomplete="username">
+      <label class="login-lbl" for="login-senha">Senha</label>
+      <div class="login-senha">
+        <input type="password" class="login-field" id="login-senha" autocomplete="current-password">
+        <button type="button" class="login-ver" id="btn-ver">Mostrar</button>
+      </div>
+      <button type="button" class="ef-btn primary login-btn" id="btn-entrar">Entrar</button>
+      <div class="login-sep">ou</div>
+      <button type="button" class="ef-btn login-alt" id="btn-ir-codigo">Receber código por e-mail</button>
+      <div class="login-links">
+        <button type="button" class="login-link" id="btn-esqueci">Esqueci minha senha</button>
+        <button type="button" class="login-link" id="btn-primeiro">Primeiro acesso</button>
+      </div>
     </div>
 
+    <!-- 2. código -->
     <div class="etapa" id="etapa-codigo">
-      <p class="login-help">Digite o código enviado para <b id="login-email-alvo"></b>.</p>
+      <p class="login-help" id="codigo-texto"></p>
       <input type="text" class="login-field codigo" id="login-codigo" inputmode="numeric" maxlength="10" autocomplete="one-time-code" placeholder="••••••">
-      <button type="button" class="ef-btn primary login-btn" id="btn-verificar">Entrar</button>
-      <button type="button" class="login-link" id="btn-trocar">Usar outro e-mail</button>
+      <button type="button" class="ef-btn primary login-btn" id="btn-verificar">Confirmar código</button>
+      <div class="login-links">
+        <button type="button" class="login-link" id="btn-reenviar">Enviar outro código</button>
+        <button type="button" class="login-link" id="btn-voltar">Voltar</button>
+      </div>
     </div>
+
+    <!-- 3. criar senha -->
+    <div class="etapa" id="etapa-nova-senha"><div id="nova-senha"></div></div>
 
     <div class="login-msg" id="login-msg"></div>
   </div>
@@ -62,15 +89,16 @@
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="senha-ui.js"></script>
 <script>
 (function () {
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const params = new URLSearchParams(location.search);
   const next = params.get("next") || "index.html";
-  // só aceita voltar para páginas deste mesmo site
   const destino = /^[a-z0-9\-]+\.html(\?.*)?$/i.test(next) ? next : "index.html";
   const $ = (id) => document.getElementById(id);
   let email = "";
+  let modoCodigo = "entrar"; // entrar | recuperar
 
   function msg(texto, erro) {
     $("login-msg").textContent = texto || "";
@@ -80,6 +108,8 @@
     document.querySelectorAll(".etapa").forEach((e) => e.classList.remove("ativa"));
     $(id).classList.add("ativa");
   }
+  const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  const lerEmail = () => (email = $("login-email").value.trim().toLowerCase());
 
   const motivos = {
     "sem-acesso": "Sua conta não tem permissão para os painéis. Fale com o administrador.",
@@ -87,56 +117,111 @@
     "config": "Configuração do sistema ausente.",
   };
   if (params.get("motivo")) msg(motivos[params.get("motivo")] || "", true);
+  if (params.get("email")) $("login-email").value = params.get("email");
 
-  async function entrarSeJaLogado() {
+  async function concluir() {
+    const { data: acesso } = await sb.rpc("meu_acesso");
+    if (!acesso) {
+      await sb.auth.signOut();
+      etapa("etapa-senha");
+      return msg(motivos["sem-acesso"], true);
+    }
+    location.replace(destino);
+  }
+
+  (async function jaLogado() {
+    if (params.get("motivo") === "sem-acesso") return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
     const { data: acesso } = await sb.rpc("meu_acesso");
     if (acesso) location.replace(destino);
-  }
-  if (params.get("motivo") !== "sem-acesso") entrarSeJaLogado();
+  })();
 
-  $("btn-enviar").addEventListener("click", async () => {
-    email = $("login-email").value.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg("Informe um e-mail válido.", true);
-    $("btn-enviar").disabled = true;
-    msg("Enviando código...");
+  /* ---- senha ---- */
+  $("btn-ver").addEventListener("click", () => {
+    const i = $("login-senha");
+    i.type = i.type === "password" ? "text" : "password";
+    $("btn-ver").textContent = i.type === "password" ? "Mostrar" : "Ocultar";
+  });
+  async function entrarComSenha() {
+    lerEmail();
+    const senha = $("login-senha").value;
+    if (!emailValido(email)) return msg("Informe um e-mail válido.", true);
+    if (!senha) return msg("Digite sua senha, ou entre com código por e-mail.", true);
+    $("btn-entrar").disabled = true;
+    msg("Entrando…");
+    const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+    $("btn-entrar").disabled = false;
+    if (error) {
+      if (/rate|too many/i.test(error.message)) return msg("Muitas tentativas. Aguarde alguns minutos.", true);
+      return msg("E-mail ou senha incorretos. Se ainda não criou senha, use \"Primeiro acesso\".", true);
+    }
+    sessionStorage.setItem("cipe-metodo", "senha");
+    concluir();
+  }
+  $("btn-entrar").addEventListener("click", entrarComSenha);
+  $("login-senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrarComSenha(); });
+  $("login-email").addEventListener("keydown", (e) => { if (e.key === "Enter") $("login-senha").focus(); });
+
+  /* ---- código ---- */
+  async function enviarCodigo(modo) {
+    lerEmail();
+    if (!emailValido(email)) { $("login-email").focus(); return msg("Informe seu e-mail primeiro.", true); }
+    modoCodigo = modo;
+    msg("Enviando código…");
     const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-    $("btn-enviar").disabled = false;
     if (error) {
       console.error(error);
-      // mensagem genérica: não revela se o e-mail existe ou não
-      return msg("Não foi possível enviar o código para esse e-mail. Confira o endereço ou fale com o administrador.", true);
+      if (/rate|seconds|limit/i.test(error.message)) return msg("Um código acabou de ser enviado. Aguarde um minuto para pedir outro.", true);
+      return msg("Não foi possível enviar o código para esse e-mail. Confira o endereço.", true);
     }
-    $("login-email-alvo").textContent = email;
+    $("codigo-texto").innerHTML = (modo === "recuperar"
+      ? "Para criar uma nova senha, confirme que é você. "
+      : "") + "Digite o código enviado para <b></b>. Confira também a caixa de spam.";
+    $("codigo-texto").querySelector("b").textContent = email;
+    $("login-codigo").value = "";
     etapa("etapa-codigo");
     msg("");
     $("login-codigo").focus();
-  });
+  }
+  $("btn-ir-codigo").addEventListener("click", () => enviarCodigo("entrar"));
+  $("btn-esqueci").addEventListener("click", () => enviarCodigo("recuperar"));
+  $("btn-primeiro").addEventListener("click", () => enviarCodigo("recuperar"));
+  $("btn-reenviar").addEventListener("click", () => enviarCodigo(modoCodigo));
+  $("btn-voltar").addEventListener("click", () => { etapa("etapa-senha"); msg(""); });
 
-  $("btn-verificar").addEventListener("click", async () => {
+  async function verificarCodigo() {
     const token = $("login-codigo").value.replace(/\s/g, "");
     if (!token) return msg("Digite o código recebido.", true);
     $("btn-verificar").disabled = true;
-    msg("Verificando...");
-    const { error } = await sb.auth.verifyOtp({ email, token, type: "email" });
-    if (error) {
-      $("btn-verificar").disabled = false;
-      return msg("Código inválido ou expirado.", true);
-    }
-    const { data: acesso } = await sb.rpc("meu_acesso");
-    if (!acesso) {
-      await sb.auth.signOut();
-      $("btn-verificar").disabled = false;
-      etapa("etapa-email");
-      return msg(motivos["sem-acesso"], true);
-    }
-    location.replace(destino);
-  });
+    msg("Verificando…");
+    let r = await sb.auth.verifyOtp({ email, token, type: "email" });
+    if (r.error) r = await sb.auth.verifyOtp({ email, token, type: "signup" });
+    $("btn-verificar").disabled = false;
+    if (r.error) return msg("Código incorreto ou expirado.", true);
+    sessionStorage.setItem("cipe-metodo", "codigo");
 
-  $("btn-trocar").addEventListener("click", () => { etapa("etapa-email"); msg(""); });
-  $("login-email").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-enviar").click(); });
-  $("login-codigo").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-verificar").click(); });
+    const { data: acesso } = await sb.rpc("meu_acesso");
+    if (!acesso) { await sb.auth.signOut(); etapa("etapa-senha"); return msg(motivos["sem-acesso"], true); }
+
+    const { data: temSenha } = await sb.rpc("tenho_senha");
+    if (modoCodigo === "recuperar" || !temSenha) {
+      msg("");
+      etapa("etapa-nova-senha");
+      SenhaUI.montar($("nova-senha"), sb, {
+        titulo: modoCodigo === "recuperar" && temSenha ? "Nova senha" : "Criar senha",
+        texto: temSenha ? "Defina a nova senha de acesso." : "Crie uma senha para entrar mais rápido nas próximas vezes. Você continua podendo entrar com código.",
+        botao: "Salvar e entrar",
+        pularTexto: modoCodigo === "recuperar" ? null : "Agora não",
+        aoConcluir: concluir,
+        aoPular: concluir,
+      });
+      return;
+    }
+    concluir();
+  }
+  $("btn-verificar").addEventListener("click", verificarCodigo);
+  $("login-codigo").addEventListener("keydown", (e) => { if (e.key === "Enter") verificarCodigo(); });
 })();
 </script>
 </body>

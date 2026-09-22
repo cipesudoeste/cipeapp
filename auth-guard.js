@@ -3,7 +3,8 @@
    Incluir DEPOIS de supabase-js e supabase-config.js e ANTES
    do script da página, dizendo qual painel é:
      <script src="auth-guard.js" data-painel="efetivo"></script>
-   Painéis: efetivo, cadastros, oficios, viaturas, whatsapp, enquetes, usuarios
+   Painéis: efetivo, cadastros, oficios, viaturas, whatsapp, enquetes, usuarios, conta
+   ("conta" = página Minha senha, liberada para todo usuário ativo)
    ("usuarios" é só para master).
    Expõe: window.sbAuth, window.usuarioAcesso, window.podeEditar
    ========================================================= */
@@ -29,6 +30,7 @@
 
   function nivel(acesso) {
     if (!acesso) return null;
+    if (painel === "conta") return "editar";
     if (acesso.papel === "master") return "editar";
     if (painel === "usuarios") return null;
     const n = (acesso.permissoes || {})[painel];
@@ -135,11 +137,13 @@
       '<span class="auth-bar-user"></span>' +
       (acesso.papel === "master" && painel !== "usuarios"
         ? '<a class="auth-bar-btn" href="usuarios.html">Usuários</a>' : "") +
+      (painel !== "conta" ? '<a class="auth-bar-btn" href="conta.html">Senha</a>' : "") +
       '<button type="button" class="auth-bar-btn auth-bar-sair">Sair</button>';
     barra.querySelector(".auth-bar-user").textContent =
-      acesso.email + " · " + (acesso.papel === "master" ? "master" : n === "editar" ? "edita" : "só leitura");
+      acesso.email + (painel === "conta" ? "" : " · " + (acesso.papel === "master" ? "master" : n === "editar" ? "edita" : "só leitura"));
     barra.querySelector(".auth-bar-sair").addEventListener("click", async () => {
       await client.auth.signOut();
+      sessionStorage.removeItem("cipe-metodo");
       location.replace("login.html");
     });
     const css = document.createElement("style");
