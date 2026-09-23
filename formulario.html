@@ -501,7 +501,7 @@
         <div class="field-card">
           <div class="field-card-header">
             <div class="field-card-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a4 4 0 100-8 4 4 0 000 8z"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg></div>
-            <div class="field-card-title">Cursos pela PM*</div>
+            <div class="field-card-title">Cursos pela PM</div>
           </div>
           <div class="wf-checklist" id="c-cursos-pm-list">
             <label><input type="checkbox" value="CURSO INTENSIVO DE OPERAÇÕES E SOBREVIVÊNCIA EM ÁREA DE CAATINGA"> Curso Intensivo de Operações e Sobrevivência em Área de Caatinga</label>
@@ -528,7 +528,7 @@
             <label><input type="checkbox" value="CURSO DE OPERADOR DE SISTEMA DE AERONAVE REMOTAMENTE PILOTADA"> Curso de Operador de Sistema de Aeronave Remotamente Pilotada</label>
           </div>
           <div class="wf-row wf-wide" style="margin-top:12px;">
-            <label class="wf-label">Caso tenha mais cursos para informar, utilize o campo abaixo</label>
+            <label class="wf-label">Marque os cursos que possui, ou — se não fez nenhum da lista, ou tiver outro que não está listado — descreva abaixo</label>
             <textarea class="ef-field" id="c-cursos-pm-outros" rows="2"></textarea>
           </div>
         </div>
@@ -545,7 +545,7 @@
         <div class="field-card">
           <div class="field-card-header">
             <div class="field-card-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
-            <div class="field-card-title">Quais situações abaixo deseja tratar?*</div>
+            <div class="field-card-title">Quais situações abaixo deseja tratar?</div>
           </div>
           <div class="wf-checklist" id="c-pendencias-list">
             <label><input type="checkbox" value="Abono Permanência"> Abono Permanência</label>
@@ -572,7 +572,7 @@
             <label><input type="checkbox" value="Outros"> Outros</label>
           </div>
           <div class="wf-row wf-wide" style="margin-top:12px;">
-            <label class="wf-label">Relate abaixo qual sua situação pendente ou a informação que deseja</label>
+            <label class="wf-label">Marque as situações acima, ou — se a sua não estiver na lista — descreva abaixo</label>
             <textarea class="ef-field" id="c-pendencia-descricao" rows="3"></textarea>
           </div>
         </div>
@@ -588,13 +588,26 @@
         <div class="success-badge">
           <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
         </div>
-        <div class="wf-success-title">Cadastro enviado com sucesso!</div>
-        <div class="wf-success-sub">Obrigado, <b id="sucesso-nome">policial</b>. A SRHS vai analisar suas informações.</div>
+        <div class="wf-success-title">Obrigado pela sua atualização!</div>
+        <div class="wf-success-sub">Recebemos os dados de <b id="sucesso-nome">policial</b>. A SRHS vai analisar suas informações.</div>
         <div class="success-protocolo">
           <div class="sp-row"><span>Matrícula</span><b id="sucesso-matricula">—</b></div>
           <div class="sp-row"><span>Enviado em</span><b id="sucesso-data">—</b></div>
         </div>
+
+        <div class="success-pendencias" id="sucesso-pendencias" hidden>
+          <div class="sp-title">Você pediu para tratar:</div>
+          <div class="sp-chips" id="sucesso-pendencias-chips"></div>
+        </div>
+
         <p class="success-nota">Guarde sua matrícula e o e-mail informado — eles serão usados para confirmar sua identidade caso precise atualizar esse cadastro novamente. Você já pode fechar esta página.</p>
+
+        <div class="contato-srhs">
+          <div class="cs-row"><span>WhatsApp</span><b>(77) 98156-3769 (CB PM Lacerda)</b></div>
+          <div class="cs-row"><span>E-mail</span><b>cipe.sudoeste.secretaria@gmail.com</b></div>
+          <div class="cs-row"><span>Presencial</span><b>Seção de RH — SSO/SRHS</b></div>
+        </div>
+
         <button type="button" class="ef-btn" id="wiz-btn-novo">Preencher outro cadastro</button>
       </div>
 

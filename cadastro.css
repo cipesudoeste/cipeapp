@@ -320,23 +320,31 @@ input[type="file"].ef-field::file-selector-button{
 
 /* --- cursos pela PM: cada curso vira um botão de adicionar --- */
 #c-cursos-pm-list{gap:8px;}
-#c-cursos-pm-list label{
+#c-pendencias-list{gap:8px;}
+#c-cursos-pm-list label,
+#c-pendencias-list label{
   position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:11px 12px;border:1px solid var(--line);border-radius:7px;background:var(--bg-panel-2);
   color:var(--ink);font-size:12.5px;cursor:pointer;user-select:none;transition:all .15s ease;
 }
-#c-cursos-pm-list label:hover{border-color:var(--cipe-brown-l);}
-#c-cursos-pm-list input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none;}
-#c-cursos-pm-list label::after{
+#c-cursos-pm-list label:hover,
+#c-pendencias-list label:hover{border-color:var(--cipe-brown-l);}
+#c-cursos-pm-list input[type=checkbox],
+#c-pendencias-list input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none;}
+#c-cursos-pm-list label::after,
+#c-pendencias-list label::after{
   content:"+ Adicionar";flex:none;font-family:var(--font-mono);font-size:10.5px;
   letter-spacing:.04em;text-transform:uppercase;padding:6px 10px;border-radius:5px;
   border:1px solid var(--accent-dim);color:var(--accent);
 }
-#c-cursos-pm-list label:has(input:checked){border-color:var(--accent);background:rgba(191,174,140,.14);}
-#c-cursos-pm-list label:has(input:checked)::after{
+#c-cursos-pm-list label:has(input:checked),
+#c-pendencias-list label:has(input:checked){border-color:var(--accent);background:rgba(191,174,140,.14);}
+#c-cursos-pm-list label:has(input:checked)::after,
+#c-pendencias-list label:has(input:checked)::after{
   content:"✓ Adicionado";background:var(--accent);color:var(--camo-black);border-color:var(--accent);
 }
-#c-cursos-pm-list label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px;}
+#c-cursos-pm-list label:has(input:focus-visible),
+#c-pendencias-list label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px;}
 
 /* caixas de texto fora do .wf-grid (outros cursos / pendências) */
 .field-card textarea.ef-field{
@@ -344,3 +352,9 @@ input[type="file"].ef-field::file-selector-button{
   color:var(--ink);padding:9px 11px;font-size:13px;font-family:inherit;resize:vertical;
 }
 .field-card textarea.ef-field:focus{outline:none;border-color:var(--cipe-brown-l);}
+
+/* resumo de pendências na tela de agradecimento */
+.success-pendencias{margin:14px 0;text-align:left;}
+.success-pendencias .sp-title{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);margin-bottom:8px;}
+.success-pendencias .sp-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.success-pendencias .eq-chip{cursor:default;font-size:11.5px;}

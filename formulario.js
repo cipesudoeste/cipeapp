@@ -425,16 +425,18 @@ function validarEtapaAtual() {
     return false;
   }
   if (currentStep === 6) {
-    const marcados = document.querySelectorAll("#c-cursos-pm-list input:checked");
-    if (marcados.length === 0) {
-      alert("Marque ao menos um curso (ou preencha o campo de texto abaixo se não possuir nenhum da lista).");
+    const marcados = document.querySelectorAll("#c-cursos-pm-list input:checked").length;
+    const outros = val("c-cursos-pm-outros");
+    if (marcados === 0 && !outros) {
+      alert("Marque ao menos um curso da lista, ou descreva no campo de texto abaixo.");
       return false;
     }
   }
   if (currentStep === 7) {
-    const marcados = document.querySelectorAll("#c-pendencias-list input:checked");
-    if (marcados.length === 0) {
-      alert("Marque ao menos uma situação que deseja tratar.");
+    const marcados = document.querySelectorAll("#c-pendencias-list input:checked").length;
+    const descricao = val("c-pendencia-descricao");
+    if (marcados === 0 && !descricao) {
+      alert("Marque ao menos uma situação da lista, ou descreva no campo de texto abaixo.");
       return false;
     }
   }
@@ -635,6 +637,15 @@ document.getElementById("wiz-btn-enviar").addEventListener("click", async () => 
     document.getElementById("sucesso-nome").textContent = nome.split(" ")[0] || nome;
     document.getElementById("sucesso-matricula").textContent = matricula;
     document.getElementById("sucesso-data").textContent = new Date().toLocaleString("pt-BR");
+
+    const pendChips = [...dados.pendencias].map((v) => `<span class="eq-chip on">${escapeHtml(v)}</span>`);
+    if (dados.pendenciaDescricao) {
+      const resumo = dados.pendenciaDescricao.length > 60 ? dados.pendenciaDescricao.slice(0, 60) + "…" : dados.pendenciaDescricao;
+      pendChips.push(`<span class="eq-chip on">${escapeHtml(resumo)}</span>`);
+    }
+    document.getElementById("sucesso-pendencias-chips").innerHTML = pendChips.join("");
+    document.getElementById("sucesso-pendencias").hidden = pendChips.length === 0;
+
     document.getElementById("wiz-sucesso").style.display = "block";
   } catch (e) {
     console.error(e);
