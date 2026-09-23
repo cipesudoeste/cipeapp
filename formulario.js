@@ -143,6 +143,8 @@ function preencherFormularioCompleto(cadastro) {
   setVal("c-formacao-qual-curso", d.formacaoQualCurso);
   marcarChecklist("c-cursos-pm-list", d.cursosPm);
   setVal("c-cursos-pm-outros", d.cursosPmOutros);
+  marcarChecklist("c-pendencias-list", d.pendencias);
+  setVal("c-pendencia-descricao", d.pendenciaDescricao);
 
   // Pendências ficam propositalmente em branco: é sempre uma nova
   // solicitação, reaproveitar pendências antigas poderia reabrir
@@ -432,14 +434,7 @@ function validarEtapaAtual() {
       return false;
     }
   }
-  if (currentStep === 7) {
-    const marcados = document.querySelectorAll("#c-pendencias-list input:checked").length;
-    const descricao = val("c-pendencia-descricao");
-    if (marcados === 0 && !descricao) {
-      alert("Marque ao menos uma situação da lista, ou descreva no campo de texto abaixo.");
-      return false;
-    }
-  }
+  // Pendências é totalmente opcional — sem exigência de marcar nada.
   return true;
 }
 
@@ -638,7 +633,7 @@ document.getElementById("wiz-btn-enviar").addEventListener("click", async () => 
     document.getElementById("sucesso-matricula").textContent = matricula;
     document.getElementById("sucesso-data").textContent = new Date().toLocaleString("pt-BR");
 
-    const pendChips = [...dados.pendencias].map((v) => `<span class="eq-chip on">${escapeHtml(v)}</span>`);
+    const pendChips = [...(dados.pendencias || [])].map((v) => `<span class="eq-chip on">${escapeHtml(v)}</span>`);
     if (dados.pendenciaDescricao) {
       const resumo = dados.pendenciaDescricao.length > 60 ? dados.pendenciaDescricao.slice(0, 60) + "…" : dados.pendenciaDescricao;
       pendChips.push(`<span class="eq-chip on">${escapeHtml(resumo)}</span>`);
