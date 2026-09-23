@@ -68,7 +68,9 @@
 .wf-search-result.notfound{color:var(--ink-faint);}
 
 /* --- upload de arquivo --- */
-.wf-upload-status{display:block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;color:var(--t-paramirim);}
+.wf-upload-status{display:block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;color:var(--t-paramirim);line-height:1.6;}
+.wf-upload-status a{color:var(--accent);text-decoration:underline;}
+.wf-upload-status a:hover{color:var(--accent-dim);}
 input[type="file"].ef-field{
   background:var(--bg-panel);border:1px dashed var(--line);border-radius:6px;padding:10px;font-size:12px;color:var(--ink-muted);
 }

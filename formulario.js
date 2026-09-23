@@ -54,7 +54,11 @@ function marcarChecklist(containerId, valores) {
 function atualizarStatusArquivo(elId, arquivo) {
   const el = document.getElementById(elId);
   if (!el) return;
-  el.textContent = arquivo ? `Já enviado anteriormente: ${arquivo.nome}` : "";
+  if (!arquivo) { el.textContent = ""; return; }
+  const tamanho = arquivo.tamanho ? ` (${formatBytes(arquivo.tamanho)})` : "";
+  el.innerHTML = arquivo.url
+    ? `Já enviado: <a href="${arquivo.url}" target="_blank" rel="noopener">👁 ver ${escapeHtml(arquivo.nome)}</a>${tamanho} — confira se ainda está válido; escolha um arquivo abaixo para substituir.`
+    : `Já enviado anteriormente: ${escapeHtml(arquivo.nome)}`;
 }
 
 /* Preenche TODO o formulário com um cadastro já existente (atualização) */
@@ -459,7 +463,7 @@ async function uploadArquivoCadastro(file, pasta, statusElId) {
     return null;
   }
   const { data } = sb.storage.from("cadastros-anexos").getPublicUrl(path);
-  if (statusEl) statusEl.textContent = "Enviado: " + file.name;
+  if (statusEl) statusEl.innerHTML = `Enviado: <a href="${data.publicUrl}" target="_blank" rel="noopener">👁 ver ${escapeHtml(file.name)}</a>`;
   return { url: data.publicUrl, path, nome: file.name, tamanho: file.size };
 }
 
