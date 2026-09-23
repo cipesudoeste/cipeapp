@@ -42,7 +42,7 @@
 <script src="auth-guard.js" data-painel="conta"></script>
 <script src="senha-ui.js"></script>
 <script>
-document.addEventListener("auth-pronto", async () => {
+async function iniciarConta() {
   const sb = window.sbAuth;
   const email = window.usuarioAcesso.email;
   const form = document.getElementById("ct-form");
@@ -73,7 +73,8 @@ document.addEventListener("auth-pronto", async () => {
     }
   }
   montar();
-});
+}
+window.authPronto ? iniciarConta() : document.addEventListener("auth-pronto", iniciarConta, { once: true });
 </script>
 </body>
 </html>

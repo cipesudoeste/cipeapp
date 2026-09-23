@@ -137,3 +137,7 @@ table.eq-t{width:100%;border-collapse:collapse;font-size:12.5px;}
 .eqp-login .eq-msg{margin-top:12px;text-align:center;}
 .eqp-nota{font-size:12.5px;color:var(--ink-faint);text-align:center;margin:14px 0 0;line-height:1.6;}
 .eqp-nota b{color:var(--ink-muted);font-weight:500;}
+
+/* botão "voltar" dentro das páginas (usa o visual do home-btn) */
+button.home-btn{background:transparent;cursor:pointer;font-family:inherit;}
+.eq-top .home-btn{font-size:16px;color:var(--ink-muted);text-decoration:none;}

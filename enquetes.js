@@ -593,11 +593,12 @@ document.querySelectorAll("[data-exp]").forEach((b) => b.addEventListener("click
 }));
 
 /* ---------------- início ---------------- */
-document.addEventListener("auth-pronto", async () => {
+async function iniciar() {
   sb = window.sbAuth;
   if (!window.podeEditar) $("btn-nova").style.display = "none";
   await Promise.all([carregarLista(), carregarEfetivo()]);
-});
+}
+window.authPronto ? iniciar() : document.addEventListener("auth-pronto", iniciar, { once: true });
 window.addEventListener("beforeunload", (ev) => {
   if (document.getElementById("v-editor").classList.contains("ativa") && atual && atual._alterado) { ev.preventDefault(); ev.returnValue = ""; }
 });

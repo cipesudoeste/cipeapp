@@ -202,6 +202,22 @@
       </div>
     </div>
 
+    <div class="card active">
+      <a class="card-link" href="rodadas.html" aria-label="Abrir acompanhamento da Atualização Cadastral"></a>
+      <div class="card-no">07</div>
+      <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+      </svg>
+      <h3>Atualização Cadastral</h3>
+      <p>Abra rodadas de atualização e acompanhe quem já enviou e quem ainda falta, por local de trabalho.</p>
+      <div class="card-foot">
+        <span class="badge live">Disponível</span>
+        <span class="go">Acompanhar
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -218,7 +234,7 @@
 (async function () {
   const PAINEL_POR_PAGINA = {
     "efetivo.html": "efetivo", "viaturas.html": "viaturas", "whatsapp.html": "whatsapp",
-    "cadastro.html": "cadastros", "oficios.html": "oficios", "enquetes.html": "enquetes",
+    "cadastro.html": "cadastros", "oficios.html": "oficios", "enquetes.html": "enquetes", "rodadas.html": "cadastros",
   };
   const cards = [...document.querySelectorAll(".card")].filter((c) => {
     const a = c.querySelector("a.card-link");

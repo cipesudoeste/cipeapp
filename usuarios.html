@@ -220,7 +220,7 @@ $("btn-adicionar").addEventListener("click", async () => {
   msg("novo-msg", "Adicionado. Agora marque os painéis que ele pode acessar na tabela abaixo.");
 });
 
-document.addEventListener("auth-pronto", carregar);
+window.authPronto ? carregar() : document.addEventListener("auth-pronto", carregar, { once: true });
 </script>
 </body>
 </html>

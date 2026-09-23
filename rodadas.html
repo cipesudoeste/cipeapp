@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPE Sudoeste — Rodadas de Atualização Cadastral</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="enquetes.css">
+<style>
+  .rd-form{display:none;} .rd-form.aberto{display:block;}
+  .eq-t td.num,.eq-t th.num{text-align:right;font-family:var(--font-mono);}
+  .rd-tag{font-size:11px;color:var(--ink-faint);}
+  .rd-tag.alerta{color:#e08a72;}
+</style>
+</head>
+<body>
+<div class="camo-trim camo-bg"></div>
+<div class="eq-wrap">
+
+  <!-- LISTA -->
+  <section class="eq-view ativa" id="v-lista">
+    <div class="eq-top">
+      <a class="home-btn" href="index.html" title="Voltar para a página inicial">←</a>
+      <h1>Rodadas de Atualização Cadastral</h1>
+      <button type="button" class="ef-btn" id="btn-link-form">Copiar link do formulário</button>
+      <button type="button" class="ef-btn primary" id="btn-nova">Nova rodada</button>
+    </div>
+    <p class="eq-sub">Cada rodada acompanha quem enviou a Atualização Cadastral a partir da data de início. Quem enviou antes do início conta como pendente.</p>
+
+    <div class="eq-card rd-form" id="rd-form">
+      <h2 id="rd-form-titulo">Nova rodada</h2>
+      <div class="eq-grid dois">
+        <div>
+          <label class="eq-lbl" for="rd-titulo">Nome da rodada</label>
+          <input class="eq-in" id="rd-titulo" placeholder="Ex.: Atualização cadastral 2º semestre 2026">
+        </div>
+        <div>
+          <label class="eq-lbl" for="rd-obs">Observação (opcional)</label>
+          <input class="eq-in" id="rd-obs" placeholder="Ex.: exigência do CPR">
+        </div>
+        <div>
+          <label class="eq-lbl" for="rd-inicio">Conta envios a partir de</label>
+          <input class="eq-in" type="datetime-local" id="rd-inicio">
+        </div>
+        <div>
+          <label class="eq-lbl" for="rd-prazo">Prazo (opcional)</label>
+          <input class="eq-in" type="datetime-local" id="rd-prazo">
+        </div>
+        <div style="grid-column:1/-1;">
+          <span class="eq-lbl">Quem precisa atualizar</span>
+          <div class="eq-radio">
+            <label class="eq-check"><input type="radio" name="rd-publico" value="todos" checked> Todo o efetivo ativo</label>
+            <label class="eq-check"><input type="radio" name="rd-publico" value="locais"> Só alguns locais de trabalho</label>
+          </div>
+          <div class="eq-chips" id="rd-locais" hidden></div>
+          <div class="eq-msg" id="rd-total" style="margin-top:8px;"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px;flex-wrap:wrap;">
+        <span class="eq-msg" id="rd-msg" style="margin-right:auto;"></span>
+        <button type="button" class="ef-btn" id="rd-cancelar">Cancelar</button>
+        <button type="button" class="ef-btn primary" id="rd-salvar">Salvar rodada</button>
+      </div>
+    </div>
+
+    <div id="lista"></div>
+  </section>
+
+  <!-- ACOMPANHAMENTO -->
+  <section class="eq-view" id="v-acomp">
+    <div class="eq-top">
+      <button type="button" class="home-btn" id="btn-voltar" title="Voltar para a lista">←</button>
+      <h1 id="ac-titulo"></h1>
+      <span class="eq-status" id="ac-status"></span>
+    </div>
+    <p class="eq-sub" id="ac-sub"></p>
+    <div class="eq-kpis">
+      <div class="eq-kpi"><div class="n" id="k-feitos">0</div><div class="l">atualizaram</div></div>
+      <div class="eq-kpi"><div class="n" id="k-pend">0</div><div class="l">faltam atualizar</div></div>
+      <div class="eq-kpi"><div class="n" id="k-pct">0%</div><div class="l">de adesão</div></div>
+    </div>
+    <div class="eq-tabs">
+      <button type="button" class="ef-tab active" data-sec="s-pend">Quem falta</button>
+      <button type="button" class="ef-tab" data-sec="s-local">Por local</button>
+      <button type="button" class="ef-tab" data-sec="s-feitos">Já atualizaram</button>
+    </div>
+
+    <div class="eq-sec ativa" id="s-pend">
+      <div class="eq-export"><span>Baixar:</span>
+        <button type="button" class="ef-btn" data-exp="pend-csv">CSV</button>
+        <button type="button" class="ef-btn" data-exp="pend-xlsx">Excel</button>
+        <button type="button" class="ef-btn" data-exp="pend-pdf">PDF</button>
+        <select class="eq-in" id="f-local" style="width:auto;margin-left:auto;"></select>
+      </div>
+      <div class="eq-tw"><table class="eq-t" id="t-pend"></table></div>
+    </div>
+
+    <div class="eq-sec" id="s-local">
+      <div class="eq-export"><span>Baixar:</span>
+        <button type="button" class="ef-btn" data-exp="local-xlsx">Excel</button>
+        <button type="button" class="ef-btn" data-exp="local-pdf">PDF</button>
+      </div>
+      <div class="eq-tw"><table class="eq-t" id="t-local"></table></div>
+    </div>
+
+    <div class="eq-sec" id="s-feitos">
+      <div class="eq-export"><span>Baixar:</span>
+        <button type="button" class="ef-btn" data-exp="feitos-csv">CSV</button>
+        <button type="button" class="ef-btn" data-exp="feitos-xlsx">Excel</button>
+        <button type="button" class="ef-btn" data-exp="feitos-pdf">PDF</button>
+      </div>
+      <div class="eq-tw"><table class="eq-t" id="t-feitos"></table></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js" data-painel="cadastros"></script>
+<script src="rodadas.js"></script>
+</body>
+</html>

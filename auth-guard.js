@@ -59,7 +59,7 @@
       ocultar: "#btn-enviar-msg,#btn-sincronizar-contatos,#btn-enviar-transmissao",
       desativar: "",
     },
-    cadastros: { ocultar: "", desativar: "" },
+    cadastros: { ocultar: "#btn-nova,[data-acao=editar],[data-acao=encerrar],[data-acao=reabrir],[data-acao=excluir]", desativar: "" },
     enquetes: { ocultar: "#btn-nova,[data-acao=editar],.eq-menu,[data-apagar]", desativar: "" },
   };
 
@@ -125,7 +125,8 @@
     if (n === "ver") aplicarSomenteLeitura();
     document.documentElement.dataset.nivel = n;
     mostrarBarra(acesso, n);
-    document.dispatchEvent(new CustomEvent("auth-pronto", { detail: { acesso, nivel: n } }));
+    window.authPronto = { acesso, nivel: n };
+    document.dispatchEvent(new CustomEvent("auth-pronto", { detail: window.authPronto }));
     const s = document.getElementById("auth-guard-hide");
     if (s) s.remove();
   }
