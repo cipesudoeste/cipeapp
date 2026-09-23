@@ -147,195 +147,180 @@ function preencherFormularioCompleto(cadastro) {
 /* ---------------------------------------------------------
    Estado da verificação por e-mail
 --------------------------------------------------------- */
-let cadastroEncontradoAnterior = null; // linha de cadastros_ingresso, se existir
-let emailParaVerificar = null;
-let matriculaAtual = null;
-let reenviarCooldownAte = 0;
+let matriculaConfirmada = null;
+let nomeConfirmado = null;
+let cadastroAtual = null;    // último envio próprio (cadastros_ingresso), se existir
+let modoCodigo = "entrar";   // entrar | recuperar
+const METODO_LOGIN = "cipe-formulario-metodo";
+
+const ERROS_ID = {
+  matricula_invalida: "A matrícula tem exatamente 8 números.",
+  matricula_nao_encontrada: "matricula_nao_encontrada",
+  sem_email: "sem_email",
+  aguarde: "Um código acabou de ser enviado. Aguarde um minuto antes de pedir outro.",
+  falha_envio: "Não foi possível enviar o código agora. Tente novamente em instantes.",
+  codigo_invalido: "Código incorreto ou expirado. Confira o e-mail ou peça um novo código.",
+  senha_invalida: "Matrícula ou senha incorretos. Se ainda não criou senha, use \"Com código por e-mail\".",
+  bloqueado: "Muitas tentativas erradas. Aguarde 15 minutos e tente de novo.",
+  falha_interna: "Erro no servidor. Tente novamente em instantes.",
+};
 
 function mostrarSubTela(id) {
   document.querySelectorAll(".auth-view").forEach((el) => el.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
-
-function mascararEmail(email) {
-  const [user, dominio] = (email || "").split("@");
-  if (!user || !dominio) return email || "";
-  const visivel = user.slice(0, 2);
-  return `${visivel}${"*".repeat(Math.max(3, user.length - 2))}@${dominio}`;
+function idMsg(texto, erro) {
+  document.getElementById("id-msg").textContent = texto || "";
+  document.getElementById("id-msg").className = "eq-msg" + (erro ? " erro" : "");
+}
+function idMsgCodigo(texto, erro) {
+  document.getElementById("id-msg-codigo").textContent = texto || "";
+  document.getElementById("id-msg-codigo").className = "wf-search-result" + (erro ? " notfound" : "");
+}
+function matriculaDigitada() {
+  return document.getElementById("id-mat").value.replace(/\D/g, "");
 }
 
-async function buscarMatricula() {
-  const matricula = document.getElementById("c-busca-matricula").value.replace(/\D/g, "");
-  const resultEl = document.getElementById("busca-resultado");
-  if (matricula.length !== 8) {
-    resultEl.textContent = "A matrícula tem exatamente 8 números.";
-    resultEl.className = "wf-search-result notfound";
-    return;
-  }
-  if (!sb) {
-    resultEl.textContent = "Busca indisponível no momento. Tente novamente mais tarde.";
-    resultEl.className = "wf-search-result notfound";
-    return;
-  }
-  resultEl.textContent = "Buscando...";
-  resultEl.className = "wf-search-result";
-  const digitos = matricula.replace(/\D/g, "");
-  matriculaAtual = matricula;
-
-  try {
-    const { data: existentes, error: errExistentes } = await sb.from("cadastros_ingresso").select("*");
-    if (errExistentes) throw errExistentes;
-
-    const anteriores = (existentes || [])
-      .filter((c) => (c.matricula || "").replace(/\D/g, "") === digitos)
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    resultEl.textContent = "";
-
-    if (anteriores.length && anteriores[0].dados && anteriores[0].dados.email) {
-      // Cadastro anterior encontrado, com e-mail salvo -> envia código direto
-      cadastroEncontradoAnterior = anteriores[0];
-      const email = anteriores[0].dados.email;
-      const dataEnvio = new Date(anteriores[0].created_at).toLocaleDateString("pt-BR");
-      document.getElementById("busca-resultado").textContent = "";
-      await enviarCodigoParaEmail(email, `Cadastro de ${anteriores[0].nome} encontrado (enviado em ${dataEnvio})! `);
-      return;
-    }
-
-    if (anteriores.length) {
-      // Achou cadastro, mas sem e-mail salvo — pede e-mail antes de liberar
-      cadastroEncontradoAnterior = anteriores[0];
-      document.getElementById("auth-pedir-email-titulo").textContent = "Encontramos seu cadastro, mas sem e-mail salvo";
-      document.getElementById("auth-pedir-email-texto").textContent =
-        "Informe um e-mail válido para recebermos um código de verificação antes de liberar a atualização.";
-      mostrarSubTela("auth-pedir-email");
-      return;
-    }
-
-    // Não encontrou nenhum cadastro anterior
-    cadastroEncontradoAnterior = null;
-    document.getElementById("auth-pedir-email-titulo").textContent = "Ainda não há cadastro para essa matrícula";
-    document.getElementById("auth-pedir-email-texto").textContent =
-      "Informe um e-mail válido — vamos enviar um código de verificação para confirmar que é você antes de liberar o formulário.";
-    mostrarSubTela("auth-pedir-email");
-  } catch (e) {
-    console.error(e);
-    resultEl.textContent = "Erro ao buscar. Tente novamente em instantes.";
-    resultEl.className = "wf-search-result notfound";
-  }
-}
-document.getElementById("btn-buscar-matricula").addEventListener("click", buscarMatricula);
-
-/* ---------------------------------------------------------
-   Envio e verificação do código (Supabase Auth — Email OTP)
---------------------------------------------------------- */
-async function enviarCodigoParaEmail(email, prefixoMensagem) {
-  emailParaVerificar = email;
-  document.getElementById("auth-email-alvo").textContent = mascararEmail(email);
-  document.getElementById("codigo-resultado").textContent = "";
-  document.getElementById("c-codigo-verificacao").value = "";
-  mostrarSubTela("auth-codigo");
-
-  if (!sb) {
-    document.getElementById("codigo-resultado").textContent = "Envio de código indisponível no momento.";
-    document.getElementById("codigo-resultado").className = "wf-search-result notfound";
-    return;
-  }
-  try {
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-    if (error) throw error;
-    document.getElementById("codigo-resultado").textContent =
-      (prefixoMensagem || "") + "Código enviado! Confira sua caixa de entrada (e o spam).";
-    document.getElementById("codigo-resultado").className = "wf-search-result ok";
-  } catch (e) {
-    console.error("Erro completo do Supabase:", e);
-    const detalhe = e.message || e.error_description || e.msg || e.name || (e.status ? `status ${e.status}` : "") || "erro sem detalhes — confira Logs > Auth Logs no Supabase";
-    document.getElementById("codigo-resultado").textContent = "Erro ao enviar o código: " + detalhe;
-    document.getElementById("codigo-resultado").className = "wf-search-result notfound";
-  }
+async function chamarIdentificacao(corpo) {
+  if (!sb) return { erro: "falha_interna" };
+  const { data, error } = await sb.functions.invoke("verificar-matricula", { body: corpo });
+  if (!error) return data;
+  let info = {};
+  try { info = await error.context.json(); } catch (_) {}
+  return { erro: info.erro || "falha_interna" };
 }
 
-document.getElementById("btn-enviar-codigo").addEventListener("click", async () => {
-  const email = document.getElementById("c-email-verificacao").value.trim();
-  const resultEl = document.getElementById("pedir-email-resultado");
-  if (!email || !email.includes("@")) {
-    resultEl.textContent = "Informe um e-mail válido.";
-    resultEl.className = "wf-search-result notfound";
-    return;
+function mostrarSemAcesso(codigoErro) {
+  const titulo = document.getElementById("id-sem-acesso-titulo");
+  const texto = document.getElementById("id-sem-acesso-texto");
+  if (codigoErro === "sem_email") {
+    titulo.textContent = "Sua matrícula não tem e-mail cadastrado";
+    texto.textContent = "Procure a SRHS para cadastrarmos um e-mail antes de liberar a atualização.";
+  } else {
+    titulo.textContent = "Não encontramos essa matrícula";
+    texto.textContent = "Confira o número digitado ou procure a SRHS para regularizar seu cadastro no efetivo antes de continuar.";
   }
-  resultEl.textContent = "";
-  await enviarCodigoParaEmail(email, "");
-});
-
-document.getElementById("btn-verificar-codigo").addEventListener("click", async () => {
-  const codigo = document.getElementById("c-codigo-verificacao").value.trim();
-  const resultEl = document.getElementById("codigo-resultado");
-  if (!codigo) {
-    resultEl.textContent = "Digite o código recebido por e-mail.";
-    resultEl.className = "wf-search-result notfound";
-    return;
-  }
-  if (!sb) {
-    resultEl.textContent = "Verificação indisponível no momento.";
-    resultEl.className = "wf-search-result notfound";
-    return;
-  }
-  resultEl.textContent = "Verificando...";
-  resultEl.className = "wf-search-result";
-  try {
-    const { error } = await sb.auth.verifyOtp({ email: emailParaVerificar, token: codigo, type: "email" });
-    if (error) throw error;
-
-    // Sucesso: libera o formulário
-    const digitosAtual = (matriculaAtual || "").replace(/\D/g, "");
-    const digitosEncontrado = cadastroEncontradoAnterior ? (cadastroEncontradoAnterior.matricula || "").replace(/\D/g, "") : "";
-    if (cadastroEncontradoAnterior && digitosEncontrado === digitosAtual) {
-      preencherFormularioCompleto(cadastroEncontradoAnterior);
-    } else {
-      if (cadastroEncontradoAnterior) console.warn("Matrícula do cadastro encontrado não bate com a buscada — ignorando preenchimento automático por segurança.");
-      document.getElementById("c-matricula").value = matriculaAtual || "";
-    }
-    setVal("c-email", emailParaVerificar);
-    irParaEtapa(1);
-  } catch (e) {
-    console.error(e);
-    resultEl.textContent = "Código inválido ou expirado. Confira e tente de novo, ou reenvie.";
-    resultEl.className = "wf-search-result notfound";
-  }
-});
-
-document.getElementById("btn-reenviar-codigo").addEventListener("click", async () => {
-  const btn = document.getElementById("btn-reenviar-codigo");
-  if (Date.now() < reenviarCooldownAte) return;
-  reenviarCooldownAte = Date.now() + 30000;
-  btn.disabled = true;
-  await enviarCodigoParaEmail(emailParaVerificar, "");
-  let restante = 30;
-  const timer = setInterval(() => {
-    restante -= 1;
-    btn.textContent = restante > 0 ? `Reenviar código (${restante}s)` : "Reenviar código";
-    if (restante <= 0) { clearInterval(timer); btn.disabled = false; }
-  }, 1000);
-});
-
-function voltarParaBusca() {
-  cadastroEncontradoAnterior = null;
-  emailParaVerificar = null;
-  document.getElementById("c-busca-matricula").value = "";
-  document.getElementById("c-email-verificacao").value = "";
-  document.getElementById("busca-resultado").textContent = "";
-  document.getElementById("pedir-email-resultado").textContent = "";
-  mostrarSubTela("auth-busca");
+  mostrarSubTela("id-tela-sem-acesso");
 }
-document.getElementById("btn-trocar-matricula-1").addEventListener("click", voltarParaBusca);
-document.getElementById("btn-trocar-matricula-2").addEventListener("click", voltarParaBusca);
 
-document.getElementById("btn-sem-acesso-email").addEventListener("click", () => {
-  mostrarSubTela("auth-sem-acesso");
+/* ---- abas "Com senha" / "Com código por e-mail" ---- */
+document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("[data-aba]").forEach((x) => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("#id-tela [data-painel]").forEach((p) => (p.hidden = p.dataset.painel !== b.dataset.aba));
+  idMsg("");
+}));
+document.getElementById("id-mat").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8); });
+document.getElementById("id-ver-senha").addEventListener("click", () => {
+  const i = document.getElementById("id-senha");
+  i.type = i.type === "password" ? "text" : "password";
+  document.getElementById("id-ver-senha").textContent = i.type === "password" ? "Mostrar" : "Ocultar";
 });
-document.getElementById("btn-sem-acesso-voltar").addEventListener("click", () => {
-  mostrarSubTela("auth-codigo");
+
+/* ---- entrar com senha ---- */
+document.getElementById("id-btn-entrar").addEventListener("click", async () => {
+  const matricula = matriculaDigitada();
+  if (matricula.length !== 8) return idMsg(ERROS_ID.matricula_invalida, true);
+  const senha = document.getElementById("id-senha").value;
+  if (!senha) return idMsg("Digite sua senha, ou use \"Com código por e-mail\".", true);
+  const btn = document.getElementById("id-btn-entrar");
+  btn.disabled = true; idMsg("Entrando…");
+  const r = await chamarIdentificacao({ acao: "entrar", matricula, senha });
+  btn.disabled = false;
+  if (r.erro) {
+    if (r.erro === "matricula_nao_encontrada" || r.erro === "sem_email") return mostrarSemAcesso(r.erro);
+    return idMsg(ERROS_ID[r.erro] || ERROS_ID.falha_interna, true);
+  }
+  await sb.auth.setSession(r.session);
+  sessionStorage.setItem(METODO_LOGIN, "senha");
+  await confirmarIdentidade(r.matricula, r.nome);
 });
+document.getElementById("id-senha").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("id-btn-entrar").click(); });
+document.getElementById("id-mat").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("id-senha").focus(); });
+
+/* ---- pedir código (entrar sem senha, ou recuperar/criar senha) ---- */
+async function pedirCodigo(modo, botao) {
+  const matricula = matriculaDigitada();
+  if (matricula.length !== 8) return idMsg(ERROS_ID.matricula_invalida, true);
+  modoCodigo = modo;
+  botao.disabled = true; idMsg("Enviando código…");
+  const r = await chamarIdentificacao({ acao: "solicitar", matricula });
+  botao.disabled = false;
+  if (r.erro) {
+    if (r.erro === "matricula_nao_encontrada" || r.erro === "sem_email") return mostrarSemAcesso(r.erro);
+    return idMsg(ERROS_ID[r.erro] || ERROS_ID.falha_interna, true);
+  }
+  document.getElementById("id-codigo-texto").innerHTML =
+    (modo === "recuperar" ? "Para criar sua senha, confirme que é você. " : "") +
+    "Enviamos um código para <b>" + escapeHtml(r.email_mascarado) + "</b>. Confira também a caixa de spam.";
+  document.getElementById("id-codigo").value = "";
+  idMsgCodigo("");
+  mostrarSubTela("id-tela-codigo");
+  document.getElementById("id-codigo").focus();
+}
+document.getElementById("id-btn-codigo").addEventListener("click", (e) => pedirCodigo("entrar", e.target));
+document.getElementById("id-btn-esqueci").addEventListener("click", (e) => pedirCodigo("recuperar", e.target));
+document.getElementById("id-btn-reenviar").addEventListener("click", (e) => pedirCodigo(modoCodigo, e.target));
+
+document.getElementById("id-btn-confirmar").addEventListener("click", confirmarCodigo);
+document.getElementById("id-codigo").addEventListener("keydown", (e) => { if (e.key === "Enter") confirmarCodigo(); });
+async function confirmarCodigo() {
+  const matricula = matriculaDigitada();
+  const codigo = document.getElementById("id-codigo").value.replace(/\s/g, "");
+  if (!codigo) return idMsgCodigo("Digite o código recebido.", true);
+  const btn = document.getElementById("id-btn-confirmar");
+  btn.disabled = true; idMsgCodigo("Confirmando…");
+  const r = await chamarIdentificacao({ acao: "verificar", matricula, codigo });
+  btn.disabled = false;
+  if (r.erro) return idMsgCodigo(ERROS_ID[r.erro] || ERROS_ID.falha_interna, true);
+  await sb.auth.setSession(r.session);
+  sessionStorage.setItem(METODO_LOGIN, "codigo");
+
+  const { data: temSenha } = await sb.rpc("tenho_senha");
+  if (modoCodigo === "recuperar" || !temSenha) {
+    mostrarSubTela("id-tela-senha-nova");
+    SenhaUI.montar(document.getElementById("id-senha-nova-box"), sb, {
+      titulo: temSenha ? "Nova senha" : "Criar senha",
+      texto: temSenha
+        ? "Defina a nova senha. Ela vale para a próxima vez que você atualizar seu cadastro."
+        : "Crie uma senha para entrar mais rápido da próxima vez. Você continua podendo usar o código por e-mail.",
+      botao: "Salvar e continuar",
+      pularTexto: modoCodigo === "recuperar" ? null : "Agora não",
+      aoConcluir: () => { sessionStorage.setItem(METODO_LOGIN, "senha"); confirmarIdentidade(r.matricula, r.nome); },
+      aoPular: () => confirmarIdentidade(r.matricula, r.nome),
+    });
+    return;
+  }
+  await confirmarIdentidade(r.matricula, r.nome);
+}
+
+/* ---- identidade confirmada: busca o envio mais recente e libera o formulário ---- */
+async function confirmarIdentidade(matricula, nome) {
+  matriculaConfirmada = matricula;
+  nomeConfirmado = nome;
+  const { data, error } = await sb
+    .from("cadastros_ingresso")
+    .select("*")
+    .eq("matricula", matricula)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  cadastroAtual = error ? null : data || null;
+  if (cadastroAtual) {
+    preencherFormularioCompleto(cadastroAtual);
+  } else {
+    document.getElementById("c-nome").value = nome || "";
+    document.getElementById("c-matricula").value = matricula;
+  }
+  const emailAtual = (cadastroAtual && cadastroAtual.dados && cadastroAtual.dados.email) || "";
+  if (!emailAtual) setVal("c-email", "");
+  const campoMatricula = document.getElementById("c-matricula");
+  campoMatricula.value = matricula;
+  campoMatricula.readOnly = true;
+  irParaEtapa(1);
+}
+
+document.getElementById("id-btn-voltar").addEventListener("click", () => { idMsgCodigo(""); mostrarSubTela("id-tela"); });
+document.getElementById("id-btn-sem-acesso-voltar").addEventListener("click", () => { idMsg(""); mostrarSubTela("id-tela"); });
 
 
 /* ---------------------------------------------------------
@@ -587,9 +572,13 @@ function coletarDados() {
 document.getElementById("wiz-btn-enviar").addEventListener("click", async () => {
   if (!validarEtapaAtual()) return;
   const nome = val("c-nome");
-  const matricula = val("c-matricula").replace(/\D/g, "");
+  const matricula = matriculaConfirmada || val("c-matricula").replace(/\D/g, "");
   if (matricula.length !== 8) {
     alert("A matrícula precisa ter exatamente 8 números (confira a etapa Informações Funcionais).");
+    return;
+  }
+  if (matriculaConfirmada && matricula !== matriculaConfirmada) {
+    alert("A matrícula não pode ser alterada aqui — ela é confirmada na identificação.");
     return;
   }
   if (!nome || !matricula) {
@@ -617,23 +606,27 @@ document.getElementById("wiz-btn-enviar").addEventListener("click", async () => 
   }
 });
 
-function resetarFormulario() {
+async function resetarFormulario() {
   document.getElementById("wiz-form").reset();
   document.getElementById("wiz-form").style.display = "block";
   document.getElementById("wiz-sucesso").style.display = "none";
-  document.getElementById("busca-resultado").textContent = "";
-  document.getElementById("pedir-email-resultado").textContent = "";
-  document.getElementById("codigo-resultado").textContent = "";
+  document.getElementById("id-msg").textContent = "";
+  document.getElementById("id-msg-codigo").textContent = "";
+  document.getElementById("id-mat").value = "";
+  document.getElementById("id-senha").value = "";
   document.getElementById("cnh-upload-status").textContent = "";
   document.getElementById("bgo-upload-status").textContent = "";
   document.getElementById("identidade-upload-status").textContent = "";
   uploadedCnh = null;
   uploadedBgo = null;
   uploadedIdentidade = null;
-  cadastroEncontradoAnterior = null;
-  emailParaVerificar = null;
-  matriculaAtual = null;
-  mostrarSubTela("auth-busca");
+  cadastroAtual = null;
+  matriculaConfirmada = null;
+  nomeConfirmado = null;
+  document.getElementById("c-matricula").readOnly = false;
+  if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
+  sessionStorage.removeItem(METODO_LOGIN);
+  mostrarSubTela("id-tela");
   const btnEnviar = document.getElementById("wiz-btn-enviar");
   btnEnviar.disabled = false;
   btnEnviar.textContent = "Enviar Cadastro";
@@ -712,7 +705,4 @@ updateConditionals();
 renderProgress();
 
 /* matrícula: só números, no máximo 8 */
-["c-busca-matricula", "c-matricula"].forEach((id) => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener("input", () => { el.value = el.value.replace(/\D/g, "").slice(0, 8); });
-});
+// c-matricula é preenchida e travada após a identificação (não editável aqui)

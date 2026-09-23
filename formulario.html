@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="shared.css">
 <link rel="stylesheet" href="cadastro.css">
+<link rel="stylesheet" href="enquetes.css">
 </head>
 <body>
 
@@ -38,76 +39,76 @@
 
   <form id="wiz-form" novalidate>
 
-      <!-- ETAPA 0 — Busca por matrícula -->
+      <!-- ETAPA 0 — Identificação (matrícula + senha ou código por e-mail) -->
       <div class="wiz-step active" data-step="0">
 
-        <!-- SUB-TELA A: busca por matrícula -->
-        <div class="auth-view active" id="auth-busca">
+        <div class="auth-view active" id="id-tela">
           <div class="auth-icon">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
           </div>
-          <div class="auth-title">Vamos localizar seu cadastro</div>
-          <p class="wf-help">Informe sua matrícula (8 números, sem pontos ou traços) para começar.</p>
-          <div class="wf-search-row">
-            <input type="text" class="ef-field" id="c-busca-matricula" placeholder="Ex: 30505913" inputmode="numeric" maxlength="8">
-            <button type="button" class="ef-btn primary" id="btn-buscar-matricula">Buscar</button>
+          <div class="auth-title">Identificação</div>
+          <p class="wf-help">Entre com sua matrícula e senha, ou receba um código no seu e-mail cadastrado.</p>
+          <div class="eqp-abas" role="tablist">
+            <button type="button" role="tab" data-aba="senha" aria-selected="true">Com senha</button>
+            <button type="button" role="tab" data-aba="codigo" aria-selected="false">Com código por e-mail</button>
           </div>
-          <div id="busca-resultado" class="wf-search-result"></div>
+          <label class="eq-lbl" for="id-mat">Matrícula</label>
+          <input class="eq-in eqp-grande" id="id-mat" inputmode="numeric" maxlength="8" pattern="\d{8}" placeholder="8 números" autocomplete="username">
+          <div data-painel="senha">
+            <label class="eq-lbl" for="id-senha">Senha</label>
+            <div class="eqp-senha">
+              <input class="eq-in eqp-grande" id="id-senha" type="password" autocomplete="current-password">
+              <button type="button" class="eqp-ver" id="id-ver-senha">Mostrar</button>
+            </div>
+            <button type="button" class="ef-btn primary eqp-principal" id="id-btn-entrar">Entrar</button>
+            <div class="eqp-rodape-login"><button type="button" class="eqp-link" id="id-btn-esqueci">Esqueci minha senha</button></div>
+          </div>
+          <div data-painel="codigo" hidden>
+            <p class="eqp-dica">Vamos enviar um código para o e-mail do seu cadastro. Depois de entrar, você pode criar uma senha.</p>
+            <button type="button" class="ef-btn primary eqp-principal" id="id-btn-codigo">Enviar código</button>
+          </div>
+          <div class="eq-msg" id="id-msg"></div>
         </div>
+        <p class="eqp-nota" id="id-nota">Primeiro acesso? Use <b>Com código por e-mail</b> e crie sua senha em seguida.</p>
 
-        <!-- SUB-TELA B: pedir e-mail (cadastro novo, ou anterior sem e-mail salvo) -->
-        <div class="auth-view" id="auth-pedir-email">
-          <div class="auth-icon">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-          </div>
-          <div class="auth-title" id="auth-pedir-email-titulo">Ainda não há cadastro para essa matrícula</div>
-          <p class="wf-help" id="auth-pedir-email-texto">Informe um e-mail válido — vamos enviar um código de verificação para confirmar que é você antes de liberar o formulário.</p>
-          <div class="wf-search-row">
-            <input type="email" class="ef-field" id="c-email-verificacao" placeholder="seuemail@exemplo.com">
-            <button type="button" class="ef-btn primary" id="btn-enviar-codigo">Enviar código</button>
-          </div>
-          <div id="pedir-email-resultado" class="wf-search-result"></div>
-          <button type="button" class="link-btn" id="btn-trocar-matricula-1">← Trocar matrícula</button>
-        </div>
-
-        <!-- SUB-TELA C: digitar código recebido por e-mail -->
-        <div class="auth-view" id="auth-codigo">
+        <!-- SUB-TELA: código recebido por e-mail -->
+        <div class="auth-view" id="id-tela-codigo">
           <div class="auth-icon">
             <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
-          <div class="auth-title">Confirme seu e-mail</div>
-          <p class="wf-help">Enviamos um código de verificação para <b id="auth-email-alvo">—</b>. Digite-o abaixo para continuar.</p>
+          <div class="auth-title">Digite o código</div>
+          <p class="wf-help" id="id-codigo-texto">Enviamos um código para <b id="id-email-alvo">—</b>. Confira também a caixa de spam.</p>
           <div class="wf-search-row">
-            <input type="text" class="ef-field" id="c-codigo-verificacao" placeholder="Código recebido" inputmode="numeric" maxlength="10" style="letter-spacing:.2em;text-align:center;">
-            <button type="button" class="ef-btn primary" id="btn-verificar-codigo">Verificar</button>
+            <input type="text" class="ef-field" id="id-codigo" inputmode="numeric" maxlength="10" autocomplete="one-time-code" placeholder="Código" style="letter-spacing:.2em;text-align:center;">
+            <button type="button" class="ef-btn primary" id="id-btn-confirmar">Confirmar</button>
           </div>
-          <div id="codigo-resultado" class="wf-search-result"></div>
+          <div id="id-msg-codigo" class="wf-search-result"></div>
           <div class="auth-links">
-            <button type="button" class="link-btn" id="btn-reenviar-codigo">Reenviar código</button>
-            <button type="button" class="link-btn" id="btn-trocar-matricula-2">Trocar matrícula</button>
+            <button type="button" class="link-btn" id="id-btn-reenviar">Enviar outro código</button>
+            <button type="button" class="link-btn" id="id-btn-voltar">Voltar</button>
           </div>
-          <button type="button" class="link-btn link-btn-alt" id="btn-sem-acesso-email">Não tenho mais acesso a esse e-mail</button>
         </div>
 
-        <!-- SUB-TELA D: sem acesso ao e-mail cadastrado -->
-        <div class="auth-view" id="auth-sem-acesso">
+        <!-- SUB-TELA: criar/definir senha após o código -->
+        <div class="auth-view" id="id-tela-senha-nova"><div id="id-senha-nova-box"></div></div>
+
+        <!-- SUB-TELA: matrícula não encontrada no efetivo, ou sem e-mail cadastrado -->
+        <div class="auth-view" id="id-tela-sem-acesso">
           <div class="auth-icon auth-icon-alert">
             <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
           </div>
-          <div class="auth-title">Sem acesso ao e-mail cadastrado?</div>
-          <p class="wf-help">
-            Por segurança, não é possível atualizar o cadastro sem confirmar sua identidade pelo e-mail já registrado.
-            Entre em contato diretamente com a <b>SRHS</b> para regularizar seu e-mail antes de continuar:
-          </p>
+          <div class="auth-title" id="id-sem-acesso-titulo">Não encontramos essa matrícula</div>
+          <p class="wf-help" id="id-sem-acesso-texto">Confira o número digitado ou procure a SRHS para regularizar seu cadastro no efetivo antes de continuar.</p>
           <div class="contato-srhs">
             <div class="cs-row"><span>WhatsApp</span><b>(77) 98156-3769 (CB PM Lacerda)</b></div>
             <div class="cs-row"><span>E-mail</span><b>cipe.sudoeste.secretaria@gmail.com</b></div>
             <div class="cs-row"><span>Presencial</span><b>Seção de RH — SSO/SRHS</b></div>
           </div>
-          <button type="button" class="ef-btn" id="btn-sem-acesso-voltar">← Voltar</button>
+          <button type="button" class="ef-btn" id="id-btn-sem-acesso-voltar">← Voltar</button>
         </div>
 
       </div>
+
 
       <!-- ETAPA 1 — Identificação -->
       <div class="wiz-step" data-step="1">
@@ -594,6 +595,7 @@
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="senha-ui.js"></script>
 <script src="formulario.js"></script>
 </body>
 </html>
