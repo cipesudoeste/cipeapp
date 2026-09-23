@@ -340,7 +340,8 @@ function updateConditionals() {
     if (!cond) return;
     const [fieldId, expected] = cond.split("=");
     const field = document.getElementById(fieldId);
-    const visible = field && field.value === expected;
+    // aceita várias opções separadas por "|" (ex.: EXTRAVIO|FURTO/ROUBO)
+    const visible = field && expected.split("|").includes(field.value);
     el.classList.toggle("wf-visible", !!visible);
     // campos escondidos não devem bloquear validação
     const input = el.querySelector("input, select, textarea");
@@ -358,6 +359,22 @@ function atualizarObrigatoriedadeIdentidade() {
 ["c-possui-identidade", "c-identidade-ilegivel"].forEach((id) => {
   const el = document.getElementById(id);
   if (el) el.addEventListener("change", atualizarObrigatoriedadeIdentidade);
+});
+document.getElementById("c-possui-identidade").addEventListener("change", (e) => {
+  if (e.target.value !== "Sim") return;
+  ["c-identidade-motivo", "c-identidade-bo", "c-identidade-bo-numero", "c-identidade-informou-srhs"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  updateConditionals();
+});
+document.getElementById("c-identidade-motivo").addEventListener("change", (e) => {
+  if (["EXTRAVIO", "FURTO/ROUBO"].includes(e.target.value)) return;
+  ["c-identidade-bo", "c-identidade-bo-numero", "c-identidade-informou-srhs"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  updateConditionals();
 });
 
 /* ---------------------------------------------------------

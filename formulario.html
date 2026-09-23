@@ -407,7 +407,7 @@
                 <option>NUNCA FOI EMITIDA</option><option>EXTRAVIO</option><option>FURTO/ROUBO</option><option>DANIFICADA/ILEGÍVEL</option>
               </select>
             </div>
-            <div class="wf-row wf-cond" data-show-if="c-identidade-motivo=EXTRAVIO">
+            <div class="wf-row wf-cond" data-show-if="c-identidade-motivo=EXTRAVIO|FURTO/ROUBO">
               <label class="wf-label">Fez Boletim de Ocorrência?*</label>
               <select class="ef-field" id="c-identidade-bo" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
             </div>
@@ -415,7 +415,7 @@
               <label class="wf-label">Número do BO (opcional)</label>
               <input type="text" class="ef-field" id="c-identidade-bo-numero" placeholder="Ex: 2026-001234">
             </div>
-            <div class="wf-row wf-cond" data-show-if="c-identidade-motivo=EXTRAVIO">
+            <div class="wf-row wf-cond" data-show-if="c-identidade-motivo=EXTRAVIO|FURTO/ROUBO">
               <label class="wf-label">Informou o extravio à SRHS?*</label>
               <select class="ef-field" id="c-identidade-informou-srhs" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
             </div>
