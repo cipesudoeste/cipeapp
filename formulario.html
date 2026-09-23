@@ -407,16 +407,28 @@
                 <option>NUNCA FOI EMITIDA</option><option>EXTRAVIO</option><option>FURTO/ROUBO</option><option>DANIFICADA/ILEGÍVEL</option>
               </select>
             </div>
+            <div class="wf-row wf-cond" data-show-if="c-identidade-motivo=EXTRAVIO">
+              <label class="wf-label">Fez Boletim de Ocorrência?*</label>
+              <select class="ef-field" id="c-identidade-bo" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
+            </div>
+            <div class="wf-row wf-cond" data-show-if="c-identidade-bo=Sim">
+              <label class="wf-label">Número do BO (opcional)</label>
+              <input type="text" class="ef-field" id="c-identidade-bo-numero" placeholder="Ex: 2026-001234">
+            </div>
+            <div class="wf-row wf-cond" data-show-if="c-identidade-motivo=EXTRAVIO">
+              <label class="wf-label">Informou o extravio à SRHS?*</label>
+              <select class="ef-field" id="c-identidade-informou-srhs" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
+            </div>
             <div class="wf-row wf-cond" data-show-if="c-possui-identidade=Sim">
               <label class="wf-label">Está atualizada com a graduação?*</label>
-              <select class="ef-field" id="c-identidade-atualizada"><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
+              <select class="ef-field" id="c-identidade-atualizada" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
             </div>
             <div class="wf-row wf-cond" data-show-if="c-possui-identidade=Sim">
               <label class="wf-label">Está ilegível ou danificada?*</label>
-              <select class="ef-field" id="c-identidade-ilegivel"><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
+              <select class="ef-field" id="c-identidade-ilegivel" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
             </div>
             <div class="wf-row wf-wide wf-cond" data-show-if="c-possui-identidade=Sim">
-              <label class="wf-label">Cópia da Identidade Funcional (frente e verso)*</label>
+              <label class="wf-label">Cópia da Identidade Funcional (frente e verso) <span id="identidade-arquivo-obrig">*</span></label>
               <input type="file" class="ef-field" id="c-identidade-arquivo" accept="application/pdf,image/jpeg,image/png,image/webp">
               <span id="identidade-upload-status" class="wf-upload-status"></span>
             </div>

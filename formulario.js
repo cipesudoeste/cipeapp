@@ -121,6 +121,9 @@ function preencherFormularioCompleto(cadastro) {
   setVal("c-nome-guerra", d.nomeGuerra);
   setVal("c-possui-identidade", d.possuiIdentidadeFuncional);
   setVal("c-identidade-motivo", d.identidadeMotivo);
+  setVal("c-identidade-bo", d.identidadeBo);
+  setVal("c-identidade-bo-numero", d.identidadeBoNumero);
+  setVal("c-identidade-informou-srhs", d.identidadeInformouSrhs);
   setVal("c-identidade-atualizada", d.identidadeAtualizada);
   setVal("c-identidade-ilegivel", d.identidadeIlegivel);
   uploadedIdentidade = d.identidadeArquivo || null;
@@ -146,6 +149,7 @@ function preencherFormularioCompleto(cadastro) {
   // algo que já foi resolvido.
 
   updateConditionals();
+  atualizarObrigatoriedadeIdentidade();
 }
 
 /* ---------------------------------------------------------
@@ -346,6 +350,15 @@ function updateConditionals() {
 document.getElementById("wiz-form").addEventListener("change", (e) => {
   if (e.target.matches("select, input")) updateConditionals();
 });
+function atualizarObrigatoriedadeIdentidade() {
+  const obrig = val("c-possui-identidade") === "Sim" && val("c-identidade-ilegivel") !== "Sim";
+  const marca = document.getElementById("identidade-arquivo-obrig");
+  if (marca) marca.style.display = obrig ? "inline" : "none";
+}
+["c-possui-identidade", "c-identidade-ilegivel"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("change", atualizarObrigatoriedadeIdentidade);
+});
 
 /* ---------------------------------------------------------
    Barra de progresso
@@ -388,8 +401,9 @@ function validarEtapaAtual() {
     }
   }
   // validações específicas por etapa
-  if (currentStep === 5 && val("c-possui-identidade") === "Sim" && !uploadedIdentidade) {
-    alert("Anexe a cópia da sua Identidade Funcional (frente e verso) antes de continuar.");
+  const identidadeExigeUpload = val("c-possui-identidade") === "Sim" && val("c-identidade-ilegivel") !== "Sim";
+  if (currentStep === 5 && identidadeExigeUpload && !uploadedIdentidade) {
+    alert("Anexe a cópia da sua Identidade Funcional (frente e verso) antes de continuar — ela só deixa de ser obrigatória quando a identidade está ilegível ou danificada.");
     document.getElementById("c-identidade-arquivo").focus();
     return false;
   }
@@ -547,6 +561,9 @@ function coletarDados() {
     nomeGuerra: val("c-nome-guerra"),
     possuiIdentidadeFuncional: val("c-possui-identidade"),
     identidadeMotivo: val("c-identidade-motivo"),
+    identidadeBo: val("c-identidade-bo"),
+    identidadeBoNumero: val("c-identidade-bo-numero"),
+    identidadeInformouSrhs: val("c-identidade-informou-srhs"),
     identidadeAtualizada: val("c-identidade-atualizada"),
     identidadeIlegivel: val("c-identidade-ilegivel"),
     identidadeArquivo: val("c-possui-identidade") === "Sim" ? uploadedIdentidade : null,
