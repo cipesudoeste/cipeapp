@@ -461,6 +461,11 @@ function validarEtapaAtual() {
     }
   }
   // validações específicas por etapa
+  if (currentStep === 5 && !verificarNomeGuerra()) {
+    alert('O Nome de Guerra não pode incluir o posto/graduação — escreva só o nome (ex.: "LACERDA").');
+    document.getElementById("c-nome-guerra").focus();
+    return false;
+  }
   const identidadeExigeUpload = val("c-possui-identidade") === "Sim" && val("c-identidade-ilegivel") !== "Sim";
   if (currentStep === 5 && identidadeExigeUpload && !uploadedIdentidade) {
     alert("Anexe a cópia da sua Identidade Funcional (frente e verso) antes de continuar — ela só deixa de ser obrigatória quando a identidade está ilegível ou danificada.");
@@ -772,6 +777,26 @@ const CAMPOS_MAIUSCULA = [
   "c-end-logradouro", "c-end-complemento", "c-end-cidade",
   "c-orgao-expedidor",
 ];
+function pareceTerPosto(valor) {
+  const s = (valor || "").trim();
+  if (!s) return false;
+  if (/\bpm\b/i.test(s)) return true;
+  const partes = s.toUpperCase().replace(/[ºª°.]/g, "").split(/\s+/);
+  const RANKS = ["SD", "CB", "SGT", "SUBTEN", "TEN", "CAP", "MAJ", "CEL", "ASP", "AL", "ST"];
+  const i = /^\d+$/.test(partes[0]) ? 1 : 0; // pula o "1" de "1º SGT"
+  return RANKS.includes(partes[i]);
+}
+function verificarNomeGuerra() {
+  const el = document.getElementById("c-nome-guerra");
+  const aviso = document.getElementById("nome-guerra-aviso");
+  const tem = pareceTerPosto(el.value);
+  aviso.style.display = tem ? "block" : "none";
+  aviso.textContent = tem ? 'Parece que você incluiu o posto/graduação. Escreva só o nome de guerra, sem "CB", "SGT", "PM" etc.' : "";
+  return !tem;
+}
+document.getElementById("c-nome-guerra").addEventListener("input", verificarNomeGuerra);
+document.getElementById("c-nome-guerra").addEventListener("blur", verificarNomeGuerra);
+
 CAMPOS_MAIUSCULA.forEach((id) => {
   const el = document.getElementById(id);
   if (!el) return;
