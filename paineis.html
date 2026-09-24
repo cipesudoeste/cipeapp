@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPE Sudoeste — Painéis</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="enquetes.css">
+</head>
+<body>
+<div class="camo-trim camo-bg"></div>
+<div class="eq-wrap">
+
+  <!-- LISTA -->
+  <section class="eq-view ativa" id="v-lista">
+    <div class="eq-top">
+      <a class="home-btn" href="index.html" title="Voltar para a página inicial">←</a>
+      <h1>Painéis</h1>
+      <button type="button" class="ef-btn primary" id="btn-novo-painel">Novo painel</button>
+    </div>
+    <p class="eq-sub">Monte painéis com os gráficos que quiser, cruzando Efetivo, Cadastros, Ofícios, Viaturas e WhatsApp. Painéis marcados com ★ aparecem primeiro, como atalhos rápidos.</p>
+    <div class="pn-grid" id="lista"></div>
+  </section>
+
+  <!-- PAINEL (visualização + construtor) -->
+  <section class="eq-view" id="v-painel">
+    <div class="eq-top">
+      <button type="button" class="home-btn" id="btn-voltar" title="Voltar para a lista">←</button>
+      <h1 id="pn-titulo">Painel</h1>
+      <label class="eq-check" id="modo-editar" style="margin:0;">
+        <input type="checkbox" id="chk-editar"> Editar
+      </label>
+      <button type="button" class="ef-btn" data-acao="compartilhar">Compartilhar</button>
+      <button type="button" class="ef-btn" data-acao="editar-painel">Renomear</button>
+      <button type="button" class="ef-btn" data-acao="excluir-painel">Excluir</button>
+    </div>
+    <p class="pn-dash-desc" id="pn-desc"></p>
+
+    <div class="pn-filtros-globais" id="pn-filtros-globais"></div>
+
+    <div id="pn-builder-slot"></div>
+
+    <div class="pn-widgets" id="pn-widgets"></div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js" data-painel="paineis"></script>
+<script src="paineis.js"></script>
+</body>
+</html>
