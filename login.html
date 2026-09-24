@@ -38,6 +38,7 @@
   .login-msg{min-height:18px;margin-top:12px;font-size:12.5px;color:var(--ink-muted);line-height:1.5;}
   .login-msg.erro{color:#e08a72;}
   .etapa{display:none;} .etapa.ativa{display:block;}
+  .login-troca{font-size:12.5px;color:var(--ink-muted);margin:0 0 14px;}
 </style>
 </head>
 <body>
@@ -51,21 +52,27 @@
     <div class="login-title">Entrar no painel</div>
     <div class="login-sub">CIPE Sudoeste · acesso restrito</div>
 
-    <!-- 1. e-mail + senha -->
-    <div class="etapa ativa" id="etapa-senha">
+    <!-- 1a. só o e-mail -->
+    <div class="etapa ativa" id="etapa-email">
       <label class="login-lbl" for="login-email">E-mail</label>
       <input type="email" class="login-field" id="login-email" placeholder="seuemail@exemplo.com" autocomplete="username">
-      <label class="login-lbl" for="login-senha">Senha</label>
-      <div class="login-senha">
-        <input type="password" class="login-field" id="login-senha" autocomplete="current-password">
-        <button type="button" class="login-ver" id="btn-ver">Mostrar</button>
-      </div>
-      <button type="button" class="ef-btn primary login-btn" id="btn-entrar">Entrar</button>
-      <div class="login-sep">ou</div>
-      <button type="button" class="ef-btn login-alt" id="btn-ir-codigo">Receber código por e-mail</button>
-      <div class="login-links">
-        <button type="button" class="login-link" id="btn-esqueci">Esqueci minha senha</button>
-        <button type="button" class="login-link" id="btn-primeiro">Primeiro acesso</button>
+      <button type="button" class="ef-btn primary login-btn" id="btn-continuar">Continuar</button>
+    </div>
+
+    <!-- 1b. método, decidido pelo sistema -->
+    <div class="etapa" id="etapa-senha">
+      <p class="login-troca"><b id="email-confirmado"></b> · <button type="button" class="login-link" id="btn-trocar-email" style="display:inline;">trocar</button></p>
+      <div id="bloco-senha" hidden>
+        <label class="login-lbl" for="login-senha">Senha</label>
+        <div class="login-senha">
+          <input type="password" class="login-field" id="login-senha" autocomplete="current-password">
+          <button type="button" class="login-ver" id="btn-ver">Mostrar</button>
+        </div>
+        <button type="button" class="ef-btn primary login-btn" id="btn-entrar">Entrar</button>
+        <div class="login-links">
+          <button type="button" class="login-link" id="btn-esqueci">Esqueci minha senha</button>
+          <button type="button" class="login-link" id="btn-usar-codigo">Prefiro receber código por e-mail</button>
+        </div>
       </div>
     </div>
 
@@ -99,6 +106,7 @@
   const $ = (id) => document.getElementById(id);
   let email = "";
   let modoCodigo = "entrar"; // entrar | recuperar
+  let semSenhaCadastrada = false;
 
   function msg(texto, erro) {
     $("login-msg").textContent = texto || "";
@@ -123,7 +131,7 @@
     const { data: acesso } = await sb.rpc("meu_acesso");
     if (!acesso) {
       await sb.auth.signOut();
-      etapa("etapa-senha");
+      etapa("etapa-email");
       return msg(motivos["sem-acesso"], true);
     }
     location.replace(destino);
@@ -137,6 +145,36 @@
     if (acesso) location.replace(destino);
   })();
 
+  /* ---- fase 1: só o e-mail. O sistema decide o método sozinho ---- */
+  async function continuarComEmail() {
+    lerEmail();
+    if (!emailValido(email)) return msg("Informe um e-mail válido.", true);
+    $("btn-continuar").disabled = true;
+    msg("Verificando…");
+    const { data: temSenha, error } = await sb.rpc("status_login_email", { p_email: email });
+    $("btn-continuar").disabled = false;
+    if (error) { console.error(error); return msg("Não foi possível verificar agora. Tente novamente.", true); }
+    msg("");
+    semSenhaCadastrada = !temSenha;
+    $("email-confirmado").textContent = email;
+    etapa("etapa-senha");
+    if (temSenha) {
+      $("bloco-senha").hidden = false;
+      $("login-senha").focus();
+    } else {
+      $("bloco-senha").hidden = true;
+      enviarCodigo("entrar");
+    }
+  }
+  $("btn-continuar").addEventListener("click", continuarComEmail);
+  $("login-email").addEventListener("keydown", (e) => { if (e.key === "Enter") continuarComEmail(); });
+  $("btn-trocar-email").addEventListener("click", () => {
+    $("login-senha").value = "";
+    msg("");
+    etapa("etapa-email");
+    $("login-email").focus();
+  });
+
   /* ---- senha ---- */
   $("btn-ver").addEventListener("click", () => {
     const i = $("login-senha");
@@ -144,29 +182,24 @@
     $("btn-ver").textContent = i.type === "password" ? "Mostrar" : "Ocultar";
   });
   async function entrarComSenha() {
-    lerEmail();
     const senha = $("login-senha").value;
-    if (!emailValido(email)) return msg("Informe um e-mail válido.", true);
-    if (!senha) return msg("Digite sua senha, ou entre com código por e-mail.", true);
+    if (!senha) return msg("Digite sua senha.", true);
     $("btn-entrar").disabled = true;
     msg("Entrando…");
     const { error } = await sb.auth.signInWithPassword({ email, password: senha });
     $("btn-entrar").disabled = false;
     if (error) {
       if (/rate|too many/i.test(error.message)) return msg("Muitas tentativas. Aguarde alguns minutos.", true);
-      return msg("E-mail ou senha incorretos. Se ainda não criou senha, use \"Primeiro acesso\".", true);
+      return msg("Senha incorreta.", true);
     }
     sessionStorage.setItem("cipe-metodo", "senha");
     concluir();
   }
   $("btn-entrar").addEventListener("click", entrarComSenha);
   $("login-senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrarComSenha(); });
-  $("login-email").addEventListener("keydown", (e) => { if (e.key === "Enter") $("login-senha").focus(); });
 
   /* ---- código ---- */
   async function enviarCodigo(modo) {
-    lerEmail();
-    if (!emailValido(email)) { $("login-email").focus(); return msg("Informe seu e-mail primeiro.", true); }
     modoCodigo = modo;
     msg("Enviando código…");
     const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
@@ -175,18 +208,20 @@
       if (/rate|seconds|limit/i.test(error.message)) return msg("Um código acabou de ser enviado. Aguarde um minuto para pedir outro.", true);
       return msg("Não foi possível enviar o código para esse e-mail. Confira o endereço.", true);
     }
+    const avisoSenha = semSenhaCadastrada
+      ? " Se este e-mail tiver acesso liberado, você poderá cadastrar uma senha para entrar mais rápido da próxima vez, se quiser."
+      : "";
     $("codigo-texto").innerHTML = (modo === "recuperar"
       ? "Para criar uma nova senha, confirme que é você. "
-      : "") + "Digite o código enviado para <b></b>. Confira também a caixa de spam.";
+      : "") + "Digite o código enviado para <b></b>. Confira também a caixa de spam." + avisoSenha;
     $("codigo-texto").querySelector("b").textContent = email;
     $("login-codigo").value = "";
     etapa("etapa-codigo");
     msg("");
     $("login-codigo").focus();
   }
-  $("btn-ir-codigo").addEventListener("click", () => enviarCodigo("entrar"));
   $("btn-esqueci").addEventListener("click", () => enviarCodigo("recuperar"));
-  $("btn-primeiro").addEventListener("click", () => enviarCodigo("recuperar"));
+  $("btn-usar-codigo").addEventListener("click", () => enviarCodigo("entrar"));
   $("btn-reenviar").addEventListener("click", () => enviarCodigo(modoCodigo));
   $("btn-voltar").addEventListener("click", () => { etapa("etapa-senha"); msg(""); });
 
@@ -204,13 +239,12 @@
     const { data: acesso } = await sb.rpc("meu_acesso");
     if (!acesso) { await sb.auth.signOut(); etapa("etapa-senha"); return msg(motivos["sem-acesso"], true); }
 
-    const { data: temSenha } = await sb.rpc("tenho_senha");
-    if (modoCodigo === "recuperar" || !temSenha) {
+    if (modoCodigo === "recuperar" || semSenhaCadastrada) {
       msg("");
       etapa("etapa-nova-senha");
       SenhaUI.montar($("nova-senha"), sb, {
-        titulo: modoCodigo === "recuperar" && temSenha ? "Nova senha" : "Criar senha",
-        texto: temSenha ? "Defina a nova senha de acesso." : "Crie uma senha para entrar mais rápido nas próximas vezes. Você continua podendo entrar com código.",
+        titulo: semSenhaCadastrada ? "Criar senha" : "Nova senha",
+        texto: semSenhaCadastrada ? "Crie uma senha para entrar mais rápido nas próximas vezes. Você continua podendo entrar com código." : "Defina a nova senha de acesso.",
         botao: "Salvar e entrar",
         pularTexto: modoCodigo === "recuperar" ? null : "Agora não",
         aoConcluir: concluir,
