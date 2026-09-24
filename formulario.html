@@ -47,26 +47,32 @@
             <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
           </div>
           <div class="auth-title">Identificação</div>
-          <p class="wf-help">Entre com sua matrícula e senha, ou receba um código no seu e-mail cadastrado.</p>
-          <div class="eqp-abas" role="tablist">
-            <button type="button" role="tab" data-aba="senha" aria-selected="true">Com senha</button>
-            <button type="button" role="tab" data-aba="codigo" aria-selected="false">Com código por e-mail</button>
+
+          <!-- fase 1: só a matrícula -->
+          <div id="id-fase-matricula">
+            <p class="wf-help">Informe sua matrícula para continuar.</p>
+            <label class="eq-lbl" for="id-mat">Matrícula</label>
+            <input class="eq-in eqp-grande" id="id-mat" inputmode="numeric" maxlength="8" pattern="\d{8}" placeholder="8 números" autocomplete="username">
+            <button type="button" class="ef-btn primary eqp-principal" id="id-btn-continuar">Continuar</button>
           </div>
-          <label class="eq-lbl" for="id-mat">Matrícula</label>
-          <input class="eq-in eqp-grande" id="id-mat" inputmode="numeric" maxlength="8" pattern="\d{8}" placeholder="8 números" autocomplete="username">
-          <div data-painel="senha">
-            <label class="eq-lbl" for="id-senha">Senha</label>
-            <div class="eqp-senha">
-              <input class="eq-in eqp-grande" id="id-senha" type="password" autocomplete="current-password">
-              <button type="button" class="eqp-ver" id="id-ver-senha">Mostrar</button>
+
+          <!-- fase 2: método de entrada, decidido pelo sistema -->
+          <div id="id-fase-metodo" hidden>
+            <p class="wf-help">Matrícula <b id="id-mat-confirmada">—</b> · <button type="button" class="eqp-link" id="id-btn-trocar-mat">trocar</button></p>
+            <div id="id-bloco-senha" hidden>
+              <label class="eq-lbl" for="id-senha">Senha</label>
+              <div class="eqp-senha">
+                <input class="eq-in eqp-grande" id="id-senha" type="password" autocomplete="current-password">
+                <button type="button" class="eqp-ver" id="id-ver-senha">Mostrar</button>
+              </div>
+              <button type="button" class="ef-btn primary eqp-principal" id="id-btn-entrar">Entrar</button>
+              <div class="eqp-rodape-login">
+                <button type="button" class="eqp-link" id="id-btn-esqueci">Esqueci minha senha</button>
+                <button type="button" class="eqp-link" id="id-btn-usar-codigo">Prefiro receber código por e-mail</button>
+              </div>
             </div>
-            <button type="button" class="ef-btn primary eqp-principal" id="id-btn-entrar">Entrar</button>
-            <div class="eqp-rodape-login"><button type="button" class="eqp-link" id="id-btn-esqueci">Esqueci minha senha</button></div>
           </div>
-          <div data-painel="codigo" hidden>
-            <p class="eqp-dica">Vamos enviar um código para o e-mail do seu cadastro. Depois de entrar, você pode criar uma senha.</p>
-            <button type="button" class="ef-btn primary eqp-principal" id="id-btn-codigo">Enviar código</button>
-          </div>
+
           <div class="eq-msg" id="id-msg"></div>
         </div>
         <p class="eqp-nota" id="id-nota">Primeiro acesso? Use <b>Com código por e-mail</b> e crie sua senha em seguida.</p>

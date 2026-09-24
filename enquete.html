@@ -83,45 +83,69 @@
   let modoCodigo = "entrar"; // entrar | recuperar
   const METODO = "cipe-enquete-metodo";
 
-  let abaLogin = "senha"; // senha | codigo
+  let semSenhaCadastrada = false;
 
   function telaMatricula(erro) {
     tela(`<div class="eqp-box eqp-login">
       <h2>Identificação</h2>
-      <div class="eqp-abas" role="tablist">
-        <button type="button" role="tab" data-aba="senha" aria-selected="${abaLogin === "senha"}">Com senha</button>
-        <button type="button" role="tab" data-aba="codigo" aria-selected="${abaLogin === "codigo"}">Com código por e-mail</button>
+
+      <div id="fase-matricula">
+        <p class="eqp-dica">Informe sua matrícula para continuar.</p>
+        <label class="eq-lbl" for="mat">Matrícula</label>
+        <input class="eq-in eqp-grande" id="mat" inputmode="numeric" maxlength="8" pattern="\d{8}" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username">
+        <button type="button" class="ef-btn primary eqp-principal" id="btn-continuar">Continuar</button>
       </div>
 
-      <label class="eq-lbl" for="mat">Matrícula</label>
-      <input class="eq-in eqp-grande" id="mat" inputmode="numeric" maxlength="8" pattern="\d{8}" placeholder="8 números" value="${esc(matriculaDigitada)}" autocomplete="username">
-
-      <div data-painel="senha" ${abaLogin === "senha" ? "" : "hidden"}>
-        <label class="eq-lbl" for="senha">Senha</label>
-        <div class="eqp-senha">
-          <input class="eq-in eqp-grande" id="senha" type="password" autocomplete="current-password">
-          <button type="button" class="eqp-ver" id="ver-senha">Mostrar</button>
+      <div id="fase-metodo" hidden>
+        <p class="eqp-dica">Matrícula <b id="mat-confirmada"></b> · <button type="button" class="eqp-link" id="btn-trocar-mat">trocar</button></p>
+        <div id="bloco-senha" hidden>
+          <label class="eq-lbl" for="senha">Senha</label>
+          <div class="eqp-senha">
+            <input class="eq-in eqp-grande" id="senha" type="password" autocomplete="current-password">
+            <button type="button" class="eqp-ver" id="ver-senha">Mostrar</button>
+          </div>
+          <button type="button" class="ef-btn primary eqp-principal" id="btn-entrar">Entrar</button>
+          <div class="eqp-rodape-login">
+            <button type="button" class="eqp-link" id="btn-esqueci">Esqueci minha senha</button>
+            <button type="button" class="eqp-link" id="btn-usar-codigo">Prefiro receber código por e-mail</button>
+          </div>
         </div>
-        <button type="button" class="ef-btn primary eqp-principal" id="btn-entrar">Entrar</button>
-        <div class="eqp-rodape-login"><button type="button" class="eqp-link" id="btn-esqueci">Esqueci minha senha</button></div>
-      </div>
-
-      <div data-painel="codigo" ${abaLogin === "codigo" ? "" : "hidden"}>
-        <p class="eqp-dica">Vamos enviar um código para o e-mail do seu cadastro. Depois de entrar, você pode criar uma senha.</p>
-        <button type="button" class="ef-btn primary eqp-principal" id="btn-codigo">Enviar código</button>
       </div>
 
       <div class="eq-msg ${erro ? "erro" : ""}" id="m">${esc(erro || "")}</div>
-    </div>
-    <p class="eqp-nota">Primeiro acesso? Use <b>Com código por e-mail</b> e crie sua senha em seguida.</p>`);
+    </div>`);
 
+    function fase(nome) {
+      $("fase-matricula").hidden = nome !== "matricula";
+      $("fase-metodo").hidden = nome !== "metodo";
+    }
+    function mostrarSenha(mostrar) {
+      $("bloco-senha").hidden = !mostrar;
+      if (mostrar) $("senha").focus();
+    }
     const lerMat = () => {
       matriculaDigitada = $("mat").value.replace(/\D/g, "");
       if (matriculaDigitada.length !== 8) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS.matricula_invalida; $("mat").focus(); return false; }
       return true;
     };
-    const entrar = async () => {
+    const continuar = async () => {
       if (!lerMat()) return;
+      $("btn-continuar").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Verificando matrícula…";
+      const r = await chamar({ acao: "status", matricula: matriculaDigitada });
+      $("btn-continuar").disabled = false;
+      if (r.erro) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
+      $("m").textContent = "";
+      semSenhaCadastrada = !r.temSenha;
+      $("mat-confirmada").textContent = matriculaDigitada;
+      fase("metodo");
+      if (r.temSenha) {
+        mostrarSenha(true);
+      } else {
+        mostrarSenha(false);
+        pedirCodigo("entrar");
+      }
+    };
+    const entrar = async () => {
       const senha = $("senha").value;
       if (!senha) { $("m").className = "eq-msg erro"; $("m").textContent = "Digite sua senha."; $("senha").focus(); return; }
       $("btn-entrar").disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Entrando…";
@@ -132,43 +156,37 @@
       carregarMinhaResposta();
     };
     const pedirCodigo = async (modo) => {
-      if (!lerMat()) return;
       modoCodigo = modo;
-      const btn = modo === "recuperar" ? $("btn-esqueci") : $("btn-codigo");
-      btn.disabled = true; $("m").className = "eq-msg"; $("m").textContent = "Enviando código…";
+      const btn = modo === "recuperar" ? $("btn-esqueci") : (modo === "entrar" && !$("btn-usar-codigo") ? null : $("btn-usar-codigo"));
+      if (btn) btn.disabled = true;
+      $("m").className = "eq-msg"; $("m").textContent = "Enviando código…";
       const r = await chamar({ acao: "solicitar", matricula: matriculaDigitada });
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
       if (r.erro) { $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
       telaCodigo(r.email_mascarado);
     };
-    const trocarAba = (aba) => {
-      abaLogin = aba;
-      document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === aba));
-      document.querySelectorAll("[data-painel]").forEach((p) => (p.hidden = p.dataset.painel !== aba));
-      $("m").textContent = "";
-      (matriculaDigitada || $("mat").value) && aba === "senha" ? $("senha").focus() : $("mat").focus();
-    };
-    document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => trocarAba(b.dataset.aba)));
     $("mat").addEventListener("input", () => { $("mat").value = $("mat").value.replace(/\D/g, "").slice(0, 8); });
+    $("mat").addEventListener("keydown", (e) => { if (e.key === "Enter") continuar(); });
+    $("btn-continuar").onclick = continuar;
+    $("btn-trocar-mat").onclick = () => { $("senha").value = ""; $("m").textContent = ""; fase("matricula"); $("mat").focus(); };
     $("ver-senha").onclick = () => {
       const i = $("senha"); i.type = i.type === "password" ? "text" : "password";
       $("ver-senha").textContent = i.type === "password" ? "Mostrar" : "Ocultar";
     };
     $("btn-entrar").onclick = entrar;
-    $("btn-codigo").onclick = () => pedirCodigo("entrar");
-    $("btn-esqueci").onclick = () => pedirCodigo("recuperar");
     $("senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
-    $("mat").addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
-      abaLogin === "senha" ? $("senha").focus() : pedirCodigo("entrar");
-    });
-    (matriculaDigitada && abaLogin === "senha" ? $("senha") : $("mat")).focus();
+    $("btn-esqueci").onclick = () => pedirCodigo("recuperar");
+    $("btn-usar-codigo").onclick = () => pedirCodigo("entrar");
+    $("mat").focus();
   }
 
   function telaCodigo(emailMasc) {
+    const avisoSenha = semSenhaCadastrada
+      ? " Sua matrícula ainda não tem senha cadastrada — depois de confirmar o código, você pode criar uma senha para entrar mais rápido da próxima vez, se quiser."
+      : "";
     tela(`<div class="eqp-box">
       <h2>Digite o código</h2>
-      <p>${modoCodigo === "recuperar" ? "Para criar sua senha, confirme que é você. " : ""}Enviamos um código para <b>${esc(emailMasc)}</b>. Pode levar um minuto; confira também a caixa de spam.</p>
+      <p>${modoCodigo === "recuperar" ? "Para criar sua senha, confirme que é você. " : ""}Enviamos um código para <b>${esc(emailMasc)}</b>. Pode levar um minuto; confira também a caixa de spam.${avisoSenha}</p>
       <div class="eqp-linha">
         <input class="eq-in" id="cod" inputmode="numeric" maxlength="10" autocomplete="one-time-code" placeholder="Código" style="letter-spacing:.25em;text-align:center;font-family:var(--font-mono);">
         <button type="button" class="ef-btn primary" id="btn-cod">Confirmar</button>
@@ -189,17 +207,17 @@
       if (r.erro) { $("btn-cod").disabled = false; $("m").className = "eq-msg erro"; $("m").textContent = ERROS[r.erro] || ERROS.falha_interna; return; }
       await sb.auth.setSession(r.session);
       sessionStorage.setItem(METODO, "codigo");
-      const { data: temSenha } = await sb.rpc("tenho_senha");
-      if (modoCodigo === "recuperar" || !temSenha) {
+      if (modoCodigo === "recuperar" || semSenhaCadastrada) {
         const box = document.createElement("div");
         box.className = "eqp-box";
         tela(""); $("etapa").appendChild(box);
         SenhaUI.montar(box, sb, {
-          titulo: temSenha ? "Nova senha" : "Criar senha",
-          texto: temSenha ? "Defina a nova senha. Ela vale para as próximas enquetes." :
-            "Crie uma senha para entrar só com matrícula e senha nas próximas enquetes. Você continua podendo usar o código por e-mail.",
+          titulo: semSenhaCadastrada ? "Criar senha" : "Nova senha",
+          texto: semSenhaCadastrada
+            ? "Crie uma senha para entrar só com matrícula e senha nas próximas enquetes. Você continua podendo usar o código por e-mail."
+            : "Defina a nova senha. Ela vale para as próximas enquetes.",
           botao: "Salvar e continuar",
-          pularTexto: modoCodigo === "recuperar" ? null : "Agora não",
+          pularTexto: semSenhaCadastrada ? "Agora não" : null,
           aoConcluir: () => { sessionStorage.setItem(METODO, "senha"); carregarMinhaResposta(); },
           aoPular: carregarMinhaResposta,
         });

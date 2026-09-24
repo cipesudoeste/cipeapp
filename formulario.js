@@ -213,12 +213,17 @@ function mostrarSemAcesso(codigoErro) {
   mostrarSubTela("id-tela-sem-acesso");
 }
 
-/* ---- abas "Com senha" / "Com código por e-mail" ---- */
-document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => {
-  document.querySelectorAll("[data-aba]").forEach((x) => x.setAttribute("aria-selected", x === b));
-  document.querySelectorAll("#id-tela [data-painel]").forEach((p) => (p.hidden = p.dataset.painel !== b.dataset.aba));
-  idMsg("");
-}));
+let semSenhaCadastrada = false;
+
+function idFase(fase) {
+  document.getElementById("id-fase-matricula").hidden = fase !== "matricula";
+  document.getElementById("id-fase-metodo").hidden = fase !== "metodo";
+}
+function idMostrarSenha(mostrar) {
+  document.getElementById("id-bloco-senha").hidden = !mostrar;
+  if (mostrar) document.getElementById("id-senha").focus();
+}
+
 document.getElementById("id-mat").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8); });
 document.getElementById("id-ver-senha").addEventListener("click", () => {
   const i = document.getElementById("id-senha");
@@ -226,12 +231,45 @@ document.getElementById("id-ver-senha").addEventListener("click", () => {
   document.getElementById("id-ver-senha").textContent = i.type === "password" ? "Mostrar" : "Ocultar";
 });
 
+/* ---- fase 1: só a matrícula. O sistema decide o método sozinho ---- */
+document.getElementById("id-btn-continuar").addEventListener("click", continuarComMatricula);
+document.getElementById("id-mat").addEventListener("keydown", (e) => { if (e.key === "Enter") continuarComMatricula(); });
+
+async function continuarComMatricula() {
+  const matricula = matriculaDigitada();
+  if (matricula.length !== 8) return idMsg(ERROS_ID.matricula_invalida, true);
+  const btn = document.getElementById("id-btn-continuar");
+  btn.disabled = true; idMsg("Verificando matrícula…");
+  const r = await chamarIdentificacao({ acao: "status", matricula });
+  btn.disabled = false;
+  if (r.erro) {
+    if (r.erro === "matricula_nao_encontrada" || r.erro === "sem_email") return mostrarSemAcesso(r.erro);
+    return idMsg(ERROS_ID[r.erro] || ERROS_ID.falha_interna, true);
+  }
+  idMsg("");
+  semSenhaCadastrada = !r.temSenha;
+  document.getElementById("id-mat-confirmada").textContent = matricula;
+  idFase("metodo");
+  if (r.temSenha) {
+    idMostrarSenha(true);
+  } else {
+    // sem senha cadastrada: vai direto pro código, sem passo extra
+    idMostrarSenha(false);
+    pedirCodigo("entrar", btn);
+  }
+}
+document.getElementById("id-btn-trocar-mat").addEventListener("click", () => {
+  document.getElementById("id-senha").value = "";
+  idMsg("");
+  idFase("matricula");
+  document.getElementById("id-mat").focus();
+});
+
 /* ---- entrar com senha ---- */
 document.getElementById("id-btn-entrar").addEventListener("click", async () => {
   const matricula = matriculaDigitada();
-  if (matricula.length !== 8) return idMsg(ERROS_ID.matricula_invalida, true);
   const senha = document.getElementById("id-senha").value;
-  if (!senha) return idMsg("Digite sua senha, ou use \"Com código por e-mail\".", true);
+  if (!senha) return idMsg("Digite sua senha.", true);
   const btn = document.getElementById("id-btn-entrar");
   btn.disabled = true; idMsg("Entrando…");
   const r = await chamarIdentificacao({ acao: "entrar", matricula, senha });
@@ -245,30 +283,33 @@ document.getElementById("id-btn-entrar").addEventListener("click", async () => {
   await confirmarIdentidade(r.matricula, r.nome);
 });
 document.getElementById("id-senha").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("id-btn-entrar").click(); });
-document.getElementById("id-mat").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("id-senha").focus(); });
 
-/* ---- pedir código (entrar sem senha, ou recuperar/criar senha) ---- */
+/* ---- pedir código (matrícula sem senha, "esqueci minha senha" ou "prefiro código") ---- */
 async function pedirCodigo(modo, botao) {
   const matricula = matriculaDigitada();
   if (matricula.length !== 8) return idMsg(ERROS_ID.matricula_invalida, true);
   modoCodigo = modo;
-  botao.disabled = true; idMsg("Enviando código…");
+  if (botao) botao.disabled = true;
+  idMsg("Enviando código…");
   const r = await chamarIdentificacao({ acao: "solicitar", matricula });
-  botao.disabled = false;
+  if (botao) botao.disabled = false;
   if (r.erro) {
     if (r.erro === "matricula_nao_encontrada" || r.erro === "sem_email") return mostrarSemAcesso(r.erro);
     return idMsg(ERROS_ID[r.erro] || ERROS_ID.falha_interna, true);
   }
+  const avisoSenha = semSenhaCadastrada
+    ? " Sua matrícula ainda não tem senha cadastrada — depois de confirmar o código, você pode criar uma senha para entrar mais rápido da próxima vez, se quiser."
+    : "";
   document.getElementById("id-codigo-texto").innerHTML =
     (modo === "recuperar" ? "Para criar sua senha, confirme que é você. " : "") +
-    "Enviamos um código para <b>" + escapeHtml(r.email_mascarado) + "</b>. Confira também a caixa de spam.";
+    "Enviamos um código para <b>" + escapeHtml(r.email_mascarado) + "</b>. Confira também a caixa de spam." + avisoSenha;
   document.getElementById("id-codigo").value = "";
   idMsgCodigo("");
   mostrarSubTela("id-tela-codigo");
   document.getElementById("id-codigo").focus();
 }
-document.getElementById("id-btn-codigo").addEventListener("click", (e) => pedirCodigo("entrar", e.target));
 document.getElementById("id-btn-esqueci").addEventListener("click", (e) => pedirCodigo("recuperar", e.target));
+document.getElementById("id-btn-usar-codigo").addEventListener("click", (e) => pedirCodigo("entrar", e.target));
 document.getElementById("id-btn-reenviar").addEventListener("click", (e) => pedirCodigo(modoCodigo, e.target));
 
 document.getElementById("id-btn-confirmar").addEventListener("click", confirmarCodigo);
@@ -285,16 +326,15 @@ async function confirmarCodigo() {
   await sb.auth.setSession(r.session);
   sessionStorage.setItem(METODO_LOGIN, "codigo");
 
-  const { data: temSenha } = await sb.rpc("tenho_senha");
-  if (modoCodigo === "recuperar" || !temSenha) {
+  if (modoCodigo === "recuperar" || semSenhaCadastrada) {
     mostrarSubTela("id-tela-senha-nova");
     SenhaUI.montar(document.getElementById("id-senha-nova-box"), sb, {
-      titulo: temSenha ? "Nova senha" : "Criar senha",
-      texto: temSenha
-        ? "Defina a nova senha. Ela vale para a próxima vez que você atualizar seu cadastro."
-        : "Crie uma senha para entrar mais rápido da próxima vez. Você continua podendo usar o código por e-mail.",
+      titulo: semSenhaCadastrada ? "Criar senha" : "Nova senha",
+      texto: semSenhaCadastrada
+        ? "Crie uma senha para entrar mais rápido da próxima vez. Você continua podendo usar o código por e-mail."
+        : "Defina a nova senha. Ela vale para a próxima vez que você atualizar seu cadastro.",
       botao: "Salvar e continuar",
-      pularTexto: modoCodigo === "recuperar" ? null : "Agora não",
+      pularTexto: semSenhaCadastrada ? "Agora não" : null,
       aoConcluir: () => { sessionStorage.setItem(METODO_LOGIN, "senha"); confirmarIdentidade(r.matricula, r.nome); },
       aoPular: () => confirmarIdentidade(r.matricula, r.nome),
     });
@@ -330,6 +370,7 @@ async function confirmarIdentidade(matricula, nome) {
 }
 
 document.getElementById("id-btn-voltar").addEventListener("click", () => { idMsgCodigo(""); mostrarSubTela("id-tela"); });
+
 document.getElementById("id-btn-sem-acesso-voltar").addEventListener("click", () => { idMsg(""); mostrarSubTela("id-tela"); });
 
 
@@ -667,10 +708,12 @@ async function resetarFormulario() {
   cadastroAtual = null;
   matriculaConfirmada = null;
   nomeConfirmado = null;
+  semSenhaCadastrada = false;
   document.getElementById("c-matricula").readOnly = false;
   if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
   sessionStorage.removeItem(METODO_LOGIN);
   mostrarSubTela("id-tela");
+  idFase("matricula");
   const btnEnviar = document.getElementById("wiz-btn-enviar");
   btnEnviar.disabled = false;
   btnEnviar.textContent = "Enviar Cadastro";
