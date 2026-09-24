@@ -358,3 +358,9 @@ input[type="file"].ef-field::file-selector-button{
 .success-pendencias .sp-title{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);margin-bottom:8px;}
 .success-pendencias .sp-chips{display:flex;flex-wrap:wrap;gap:6px;}
 .success-pendencias .eq-chip{cursor:default;font-size:11.5px;}
+
+/* excluir um preenchimento */
+.si-excluir{background:none;border:1px solid var(--line);color:var(--ink-faint);border-radius:5px;width:24px;height:24px;font-size:12px;cursor:pointer;flex:none;}
+.si-excluir:hover{color:#e08a72;border-color:#e08a72;}
+#modal-excluir-btn{border-color:#b0553f;color:#e08a72;}
+#modal-excluir-btn:hover{background:rgba(176,85,63,.12);}

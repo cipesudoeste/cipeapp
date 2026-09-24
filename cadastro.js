@@ -254,7 +254,10 @@ function abrirModalSubmissoes(grupo) {
         <div class="si-data">${dataFmt}</div>
         <div class="si-meta">${rotulo}</div>
       </div>
-      <svg class="si-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"/></svg>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${window.podeEditar ? `<button type="button" class="eq-ico perigo si-excluir" data-id-excluir="${s.id}" title="Excluir este preenchimento">✕</button>` : ""}
+        <svg class="si-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
     </div>`;
   }).join("");
 
@@ -268,12 +271,42 @@ function abrirModalSubmissoes(grupo) {
   `);
   document.getElementById("submissoes-fechar-btn").addEventListener("click", closeModal);
   document.querySelectorAll(".submissao-item").forEach((item) => {
-    item.addEventListener("click", () => {
+    item.addEventListener("click", (ev) => {
+      if (ev.target.closest(".si-excluir")) return;
       const id = Number(item.dataset.id);
       const submissao = grupo.submissoes.find((s) => s.id === id);
       if (submissao) abrirModalCadastro(submissao);
     });
   });
+  document.querySelectorAll(".si-excluir").forEach((btn) => {
+    btn.addEventListener("click", async (ev) => {
+      ev.stopPropagation();
+      const id = Number(btn.dataset.idExcluir);
+      const submissao = grupo.submissoes.find((s) => s.id === id);
+      if (submissao && (await excluirSubmissao(submissao))) {
+        grupo.submissoes = grupo.submissoes.filter((s) => s.id !== id);
+        if (!grupo.submissoes.length) { closeModal(); }
+        else abrirModalSubmissoes(grupo);
+      }
+    });
+  });
+}
+
+/* Apaga um preenchimento (e os anexos dele no Storage) e atualiza a lista em memória. */
+async function excluirSubmissao(submissao) {
+  const dataFmt = submissao.created_at ? new Date(submissao.created_at).toLocaleDateString("pt-BR") : "";
+  if (!confirm(`Excluir o preenchimento de ${dataFmt || "data desconhecida"}?\n\nOs dados desse envio e os anexos (CNH, BGO, Identidade) enviados nele serão apagados. Isso não pode ser desfeito.`)) return false;
+  const d = submissao.dados || {};
+  const caminhos = [d.cnhArquivo, d.bgoArquivo, d.identidadeArquivo].filter((a) => a && a.path).map((a) => a.path);
+  if (caminhos.length) {
+    const { error: eStorage } = await sb.storage.from("cadastros-anexos").remove(caminhos);
+    if (eStorage) console.warn("Não foi possível remover algum anexo:", eStorage.message);
+  }
+  const { error } = await sb.from("cadastros_ingresso").delete().eq("id", submissao.id);
+  if (error) { alert("Não foi possível excluir: " + error.message); return false; }
+  cadastrosCache = cadastrosCache.filter((c) => c.id !== submissao.id);
+  aplicarFiltrosERenderizar();
+  return true;
 }
 
 /* ---------------------------------------------------------
@@ -427,10 +460,14 @@ function abrirModalCadastro(c) {
     ${detailCard(ICONS.anexo, "Anexos", anexosHtml)}
 
     <div class="modal-actions">
+      ${window.podeEditar ? `<button class="ef-btn" id="modal-excluir-btn">Excluir este preenchimento</button>` : ""}
       <button class="ef-btn primary" id="modal-fechar-btn">Fechar</button>
     </div>
   `);
   document.getElementById("modal-fechar-btn").addEventListener("click", closeModal);
+  document.getElementById("modal-excluir-btn")?.addEventListener("click", async () => {
+    if (await excluirSubmissao(c)) closeModal();
+  });
 }
 
 /* ---------------------------------------------------------
