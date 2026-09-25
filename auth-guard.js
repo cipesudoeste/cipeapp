@@ -3,7 +3,7 @@
    Incluir DEPOIS de supabase-js e supabase-config.js e ANTES
    do script da página, dizendo qual painel é:
      <script src="auth-guard.js" data-painel="efetivo"></script>
-   Painéis: efetivo, cadastros, oficios, viaturas, whatsapp, enquetes, paineis, usuarios, conta
+   Painéis: efetivo, cadastros, oficios, viaturas, whatsapp, enquetes, paineis, pontos, usuarios, conta
    ("conta" = página Minha senha, liberada para todo usuário ativo)
    ("usuarios" é só para master).
    Expõe: window.sbAuth, window.usuarioAcesso, window.podeEditar
@@ -62,6 +62,7 @@
     cadastros: { ocultar: "#btn-nova,[data-acao=editar],[data-acao=encerrar],[data-acao=reabrir],[data-acao=excluir]", desativar: "" },
     enquetes: { ocultar: "#btn-nova,[data-acao=editar],.eq-menu,[data-apagar]", desativar: "" },
     paineis: { ocultar: "#btn-novo-painel,[data-acao=editar-painel],[data-acao=excluir-painel],[data-acao=compartilhar],#modo-editar", desativar: "" },
+    pontos: { ocultar: "#btn-novo-ponto,[data-acao=editar-ponto],[data-acao=excluir-ponto]", desativar: "" },
   };
 
   function aplicarSomenteLeitura() {

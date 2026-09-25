@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPE Sudoeste — Pontos Operacionais</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="enquetes.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<div class="camo-trim camo-bg"></div>
+<div class="eq-wrap">
+
+  <section class="eq-view ativa" id="v-lista">
+    <div class="eq-top">
+      <a class="home-btn" href="index.html" title="Voltar para a página inicial">←</a>
+      <h1>Pontos Operacionais</h1>
+      <button type="button" class="ef-btn primary" id="btn-novo-ponto">Novo ponto</button>
+    </div>
+    <p class="eq-sub">Bases, apoio a viaturas, saúde, outras forças e comunicação — aparecem como camadas no mapa de Área de Responsabilidade para quem tem acesso liberado.</p>
+    <div class="pt-filtros" id="pt-filtros"></div>
+    <div class="pt-lista" id="pt-lista"></div>
+  </section>
+
+  <section class="eq-view" id="v-form">
+    <div class="eq-top">
+      <button type="button" class="home-btn" id="btn-voltar" title="Voltar para a lista">←</button>
+      <h1 id="pt-form-titulo">Novo ponto</h1>
+    </div>
+    <div class="eq-card">
+      <div class="eq-grid dois">
+        <div>
+          <label class="eq-lbl" for="pt-categoria">Categoria</label>
+          <select class="eq-in" id="pt-categoria"></select>
+        </div>
+        <div>
+          <label class="eq-lbl" for="pt-nome">Nome</label>
+          <input class="eq-in" id="pt-nome" placeholder="Ex.: Posto Rede — BR-116 km 12">
+        </div>
+        <div>
+          <label class="eq-lbl" for="pt-telefone">Telefone (opcional)</label>
+          <input class="eq-in" id="pt-telefone" placeholder="(77) 9 9999-9999">
+        </div>
+        <div>
+          <label class="eq-lbl" for="pt-horario">Horário de funcionamento (opcional)</label>
+          <input class="eq-in" id="pt-horario" placeholder="Ex.: 24h, ou Seg-Sex 8h-18h">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="eq-lbl" for="pt-endereco">Endereço (opcional)</label>
+          <input class="eq-in" id="pt-endereco" placeholder="Referência para localizar">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="eq-lbl" for="pt-observacao">Observação (opcional)</label>
+          <textarea class="eq-in" id="pt-observacao" rows="2" placeholder="Ex.: abastecimento mediante ofício, ponto de referência etc."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="eq-card">
+      <h2>Localização</h2>
+      <p class="eq-sub" style="margin-bottom:6px;">Clique no mapa para marcar o ponto, ou digite as coordenadas.</p>
+      <div class="pt-form-map" id="pt-minimap"></div>
+      <div class="eq-grid dois" style="margin-top:10px;">
+        <div><label class="eq-lbl" for="pt-lat">Latitude</label><input class="eq-in" id="pt-lat" inputmode="decimal"></div>
+        <div><label class="eq-lbl" for="pt-lng">Longitude</label><input class="eq-in" id="pt-lng" inputmode="decimal"></div>
+      </div>
+      <div class="pt-coords" id="pt-coords-status"></div>
+    </div>
+    <div class="eq-rodape">
+      <span class="eq-msg" id="pt-msg"></span>
+      <button type="button" class="ef-btn" id="btn-excluir-ponto" style="display:none;border-color:#b0553f;color:#e08a72;">Excluir</button>
+      <button type="button" class="ef-btn primary" id="btn-salvar-ponto">Salvar</button>
+    </div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js" data-painel="pontos"></script>
+<script src="pontos.js"></script>
+</body>
+</html>

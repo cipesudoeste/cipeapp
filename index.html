@@ -234,6 +234,22 @@
       </div>
     </div>
 
+    <div class="card active">
+      <a class="card-link" href="pontos.html" aria-label="Abrir Pontos Operacionais"></a>
+      <div class="card-no">09</div>
+      <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>
+      </svg>
+      <h3>Pontos Operacionais</h3>
+      <p>Cadastre bases, postos de combustível, saúde e outros pontos de apoio que aparecem no mapa de Área de Responsabilidade.</p>
+      <div class="card-foot">
+        <span class="badge live">Disponível</span>
+        <span class="go">Abrir painel
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -251,6 +267,7 @@
   const PAINEL_POR_PAGINA = {
     "efetivo.html": "efetivo", "viaturas.html": "viaturas", "whatsapp.html": "whatsapp",
     "cadastro.html": "cadastros", "oficios.html": "oficios", "enquetes.html": "enquetes", "rodadas.html": "cadastros",
+    "paineis.html": "paineis", "pontos.html": "pontos",
   };
   const cards = [...document.querySelectorAll(".card")].filter((c) => {
     const a = c.querySelector("a.card-link");

@@ -13,6 +13,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<style>
+  #pontos-secao{display:none;}
+  #pontos-secao .row{cursor:pointer;}
+  .pop-pontos-rota{display:inline-block;margin-top:8px;font-size:11px;color:var(--accent,#bfae8c);text-decoration:underline;}
+</style>
 </head>
 <body>
 
@@ -90,6 +95,9 @@
         <div class="section-label">Filtrar por região</div>
         <div class="tree" id="tree"></div>
 
+        <div class="section-label" id="pontos-secao">Pontos operacionais</div>
+        <div class="tree" id="pontos-tree" style="display:none;"></div>
+
         <div class="legend">
           <div class="legend-title">Legenda · Territórios</div>
           <div id="legend-list"></div>
@@ -120,7 +128,11 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.1/dist/Leaflet.GoogleMutant.js"></script>
+<script src="maps-config.js"></script>
 <script src="data_bahia.js"></script>
 <script src="data_regioes.js"></script>
 <script>
@@ -154,6 +166,41 @@ const BASEMAPS = [
 ];
 const BASEMAP_STORAGE_KEY = "cipe-so-basemap";
 
+/* Google só entra na lista se houver uma chave em maps-config.js.
+   Carregamento sob demanda: não pesa a página enquanto não tiver chave. */
+let googleCarregado = false;
+function carregarGoogleMaps() {
+  if (!GOOGLE_MAPS_API_KEY || googleCarregado) return Promise.resolve(!!googleCarregado);
+  googleCarregado = true;
+  return new Promise((ok) => {
+    window.__onGoogleMapsPronto = () => {
+      BASEMAPS.push(
+        { id:"google", name:"Google", swatch:"#8fae7a", google:{ type:"roadmap" } },
+        { id:"google-dark", name:"Google (escuro)", swatch:"#3b3f33", google:{ type:"roadmap", styles: GOOGLE_DARK_STYLE } },
+        { id:"google-satelite", name:"Google Satélite", swatch:"#4a5a3a", google:{ type:"hybrid" } },
+      );
+      montarSeletorDeMapas();
+      ok(true);
+    };
+    const s = document.createElement("script");
+    s.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(GOOGLE_MAPS_API_KEY) + "&callback=__onGoogleMapsPronto";
+    s.onerror = () => ok(false);
+    document.head.appendChild(s);
+  });
+}
+// Estilo escuro discreto, no espírito do "Escuro (operacional)" já usado no mapa.
+const GOOGLE_DARK_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#212121" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
+];
+
 /* ---------------------------------------------------------
    Mapa base
 --------------------------------------------------------- */
@@ -176,14 +223,17 @@ const bahiaLayer = L.geoJSON(DATA_BAHIA, {
 }).addTo(map);
 
 let currentBaseLayer = null;
-function setBasemap(id){
-  const def = BASEMAPS.find(b => b.id === id) || BASEMAPS[0];
+async function setBasemap(id){
+  let def = BASEMAPS.find(b => b.id === id);
+  if (!def && id && id.startsWith("google") && GOOGLE_MAPS_API_KEY) {
+    await carregarGoogleMaps();
+    def = BASEMAPS.find(b => b.id === id);
+  }
+  def = def || BASEMAPS[0];
   if (currentBaseLayer) map.removeLayer(currentBaseLayer);
-  currentBaseLayer = L.tileLayer(def.url, {
-    attribution: def.attribution,
-    subdomains: def.subdomains || undefined,
-    maxZoom: 19,
-  });
+  currentBaseLayer = def.google
+    ? L.gridLayer.googleMutant({ type: def.google.type, styles: def.google.styles || [] })
+    : L.tileLayer(def.url, { attribution: def.attribution, subdomains: def.subdomains || undefined, maxZoom: 19 });
   currentBaseLayer.addTo(map);
   currentBaseLayer.bringToBack();
   document.querySelectorAll('.layer-option').forEach(el => {
@@ -192,22 +242,32 @@ function setBasemap(id){
   try { localStorage.setItem(BASEMAP_STORAGE_KEY, id); } catch(e) {}
 }
 
-let savedBasemap = "dark";
-try { savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY) || "dark"; } catch(e) {}
-setBasemap(savedBasemap);
+// Padrão gratuito e sem chave (OpenStreetMap) até o Google estar configurado;
+// se a pessoa já tinha escolhido explicitamente outro mapa, respeita a escolha.
+let savedBasemap = GOOGLE_MAPS_API_KEY ? "google-dark" : "streets";
+try { savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY) || savedBasemap; } catch(e) {}
+if (GOOGLE_MAPS_API_KEY) {
+  carregarGoogleMaps().then(() => setBasemap(savedBasemap));
+} else {
+  setBasemap(savedBasemap);
+}
 
 /* Painel seletor de mapa-base */
 const layerBtn = document.getElementById('layer-btn');
 const layerPanel = document.getElementById('layer-panel');
-BASEMAPS.forEach(b => {
-  const opt = document.createElement('div');
-  opt.className = 'layer-option';
-  opt.dataset.id = b.id;
-  opt.innerHTML = `<span class="layer-swatch" style="background:${b.swatch}"></span><span>${b.name}</span>`;
-  opt.addEventListener('click', () => { setBasemap(b.id); layerPanel.classList.remove('open'); layerBtn.classList.remove('open'); });
-  layerPanel.appendChild(opt);
-});
-document.querySelectorAll('.layer-option').forEach(el => el.classList.toggle('active', el.dataset.id === savedBasemap));
+function montarSeletorDeMapas() {
+  layerPanel.innerHTML = "";
+  BASEMAPS.forEach(b => {
+    const opt = document.createElement('div');
+    opt.className = 'layer-option';
+    opt.dataset.id = b.id;
+    opt.innerHTML = `<span class="layer-swatch" style="background:${b.swatch}"></span><span>${b.name}</span>`;
+    opt.addEventListener('click', () => { setBasemap(b.id); layerPanel.classList.remove('open'); layerBtn.classList.remove('open'); });
+    layerPanel.appendChild(opt);
+  });
+  document.querySelectorAll('.layer-option').forEach(el => el.classList.toggle('active', el.dataset.id === savedBasemap));
+}
+montarSeletorDeMapas();
 
 layerBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -435,6 +495,78 @@ document.getElementById('toggle-bahia').addEventListener('change', (e) => {
   if (e.target.checked) bahiaLayer.addTo(map);
   else map.removeLayer(bahiaLayer);
 });
+
+/* ---------------------------------------------------------
+   Pontos operacionais: camada extra, só para quem tem login
+   com permissão. Visitante público não vê nada disto (nem a
+   seção aparece) — não faz login automático nem redireciona.
+--------------------------------------------------------- */
+const CATEGORIAS_PONTOS = {
+  base:        { label: "Base / Posto da CIPE", cor: "#bfae8c" },
+  saude:       { label: "Saúde e emergência",   cor: "#e08a72" },
+  combustivel: { label: "Combustível",           cor: "#d0c98a" },
+  mecanica:    { label: "Borracharia / Oficina", cor: "#9fd08a" },
+  forcas:      { label: "Outras forças e órgãos",cor: "#8ab4d0" },
+  comunicacao: { label: "Sinal fraco/sem sinal", cor: "#c9a2d0" },
+  logistica:   { label: "Logística e apoio",     cor: "#8ad0c0" },
+  outro:       { label: "Outro",                 cor: "#bbb" },
+};
+function iconePonto(cor) {
+  return L.divIcon({
+    className: "", iconSize: [16, 16], iconAnchor: [8, 8],
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid rgba(0,0,0,.55);"></div>`,
+  });
+}
+function popupPontoHtml(pt) {
+  const linhas = [
+    pt.endereco ? `<div class="pop-row"><span>Endereço</span><span>${pt.endereco}</span></div>` : "",
+    pt.telefone ? `<div class="pop-row"><span>Telefone</span><span>${pt.telefone}</span></div>` : "",
+    pt.horario ? `<div class="pop-row"><span>Horário</span><span>${pt.horario}</span></div>` : "",
+    pt.observacao ? `<div class="pop-row"><span>Obs.</span><span>${pt.observacao}</span></div>` : "",
+  ].join("");
+  const rota = `https://www.google.com/maps/dir/?api=1&destination=${pt.latitude},${pt.longitude}`;
+  return `<div class="pop-terr" style="color:${CATEGORIAS_PONTOS[pt.categoria]?.cor || "#bbb"}">${CATEGORIAS_PONTOS[pt.categoria]?.label || pt.categoria}</div>
+    <div class="pop-name">${pt.nome}</div>${linhas}
+    <a class="pop-pontos-rota" href="${rota}" target="_blank" rel="noopener">🧭 Traçar rota até aqui</a>`;
+}
+async function iniciarPontosOperacionais() {
+  if (typeof SUPABASE_URL === "undefined") return;
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data: acesso } = await sb.rpc("meu_acesso");
+  const nivel = acesso && (acesso.papel === "master" ? "ver" : (acesso.permissoes || {}).pontos);
+  if (!nivel) return;
+  const { data: pontos, error } = await sb.from("pontos_operacionais").select("*").eq("ativo", true);
+  if (error || !pontos || !pontos.length) return;
+
+  const grupos = {};
+  pontos.forEach((pt) => {
+    grupos[pt.categoria] = grupos[pt.categoria] || L.layerGroup();
+    L.marker([pt.latitude, pt.longitude], { icon: iconePonto(CATEGORIAS_PONTOS[pt.categoria]?.cor || "#bbb") })
+      .bindPopup(popupPontoHtml(pt))
+      .addTo(grupos[pt.categoria]);
+  });
+
+  const secao = document.getElementById("pontos-secao");
+  const tree = document.getElementById("pontos-tree");
+  secao.style.display = "block";
+  tree.style.display = "block";
+  tree.innerHTML = "";
+  Object.keys(grupos).forEach((cat) => {
+    const row = document.createElement("div");
+    row.className = "row terr-row";
+    row.style.paddingLeft = "8px";
+    const n = grupos[cat].getLayers().length;
+    row.innerHTML = `<input type="checkbox" checked><span class="swatch" style="background:${CATEGORIAS_PONTOS[cat]?.cor || "#bbb"}"></span><span class="row-name">${CATEGORIAS_PONTOS[cat]?.label || cat} (${n})</span>`;
+    grupos[cat].addTo(map);
+    row.querySelector("input").addEventListener("change", (e) => {
+      e.target.checked ? grupos[cat].addTo(map) : map.removeLayer(grupos[cat]);
+    });
+    tree.appendChild(row);
+  });
+}
+iniciarPontosOperacionais();
 </script>
 </body>
 </html>

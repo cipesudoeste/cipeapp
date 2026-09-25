@@ -115,6 +115,8 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.1/dist/Leaflet.GoogleMutant.js"></script>
+<script src="maps-config.js"></script>
 <script src="data_bahia.js"></script>
 <script src="data_eixos.js"></script>
 <script>
@@ -152,6 +154,41 @@ const BASEMAPS = [
 ];
 const BASEMAP_STORAGE_KEY = "cipe-so-basemap";
 
+/* Google só entra na lista se houver uma chave em maps-config.js.
+   Carregamento sob demanda: não pesa a página enquanto não tiver chave. */
+let googleCarregado = false;
+function carregarGoogleMaps() {
+  if (!GOOGLE_MAPS_API_KEY || googleCarregado) return Promise.resolve(!!googleCarregado);
+  googleCarregado = true;
+  return new Promise((ok) => {
+    window.__onGoogleMapsPronto = () => {
+      BASEMAPS.push(
+        { id:"google", name:"Google", swatch:"#8fae7a", google:{ type:"roadmap" } },
+        { id:"google-dark", name:"Google (escuro)", swatch:"#3b3f33", google:{ type:"roadmap", styles: GOOGLE_DARK_STYLE } },
+        { id:"google-satelite", name:"Google Satélite", swatch:"#4a5a3a", google:{ type:"hybrid" } },
+      );
+      montarSeletorDeMapas();
+      ok(true);
+    };
+    const s = document.createElement("script");
+    s.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(GOOGLE_MAPS_API_KEY) + "&callback=__onGoogleMapsPronto";
+    s.onerror = () => ok(false);
+    document.head.appendChild(s);
+  });
+}
+// Estilo escuro discreto, no espírito do "Escuro (operacional)" já usado no mapa.
+const GOOGLE_DARK_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#212121" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
+];
+
 /* ---------------------------------------------------------
    Mapa base
 --------------------------------------------------------- */
@@ -174,14 +211,17 @@ const bahiaLayer = L.geoJSON(DATA_BAHIA, {
 }).addTo(map);
 
 let currentBaseLayer = null;
-function setBasemap(id){
-  const def = BASEMAPS.find(b => b.id === id) || BASEMAPS[0];
+async function setBasemap(id){
+  let def = BASEMAPS.find(b => b.id === id);
+  if (!def && id && id.startsWith("google") && GOOGLE_MAPS_API_KEY) {
+    await carregarGoogleMaps();
+    def = BASEMAPS.find(b => b.id === id);
+  }
+  def = def || BASEMAPS[0];
   if (currentBaseLayer) map.removeLayer(currentBaseLayer);
-  currentBaseLayer = L.tileLayer(def.url, {
-    attribution: def.attribution,
-    subdomains: def.subdomains || undefined,
-    maxZoom: 19,
-  });
+  currentBaseLayer = def.google
+    ? L.gridLayer.googleMutant({ type: def.google.type, styles: def.google.styles || [] })
+    : L.tileLayer(def.url, { attribution: def.attribution, subdomains: def.subdomains || undefined, maxZoom: 19 });
   currentBaseLayer.addTo(map);
   currentBaseLayer.bringToBack();
   document.querySelectorAll('.layer-option').forEach(el => {
@@ -190,22 +230,32 @@ function setBasemap(id){
   try { localStorage.setItem(BASEMAP_STORAGE_KEY, id); } catch(e) {}
 }
 
-let savedBasemap = "dark";
-try { savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY) || "dark"; } catch(e) {}
-setBasemap(savedBasemap);
+// Padrão gratuito e sem chave (OpenStreetMap) até o Google estar configurado;
+// se a pessoa já tinha escolhido explicitamente outro mapa, respeita a escolha.
+let savedBasemap = GOOGLE_MAPS_API_KEY ? "google-dark" : "streets";
+try { savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY) || savedBasemap; } catch(e) {}
+if (GOOGLE_MAPS_API_KEY) {
+  carregarGoogleMaps().then(() => setBasemap(savedBasemap));
+} else {
+  setBasemap(savedBasemap);
+}
 
 /* Painel seletor de mapa-base */
 const layerBtn = document.getElementById('layer-btn');
 const layerPanel = document.getElementById('layer-panel');
-BASEMAPS.forEach(b => {
-  const opt = document.createElement('div');
-  opt.className = 'layer-option';
-  opt.dataset.id = b.id;
-  opt.innerHTML = `<span class="layer-swatch" style="background:${b.swatch}"></span><span>${b.name}</span>`;
-  opt.addEventListener('click', () => { setBasemap(b.id); layerPanel.classList.remove('open'); layerBtn.classList.remove('open'); });
-  layerPanel.appendChild(opt);
-});
-document.querySelectorAll('.layer-option').forEach(el => el.classList.toggle('active', el.dataset.id === savedBasemap));
+function montarSeletorDeMapas() {
+  layerPanel.innerHTML = "";
+  BASEMAPS.forEach(b => {
+    const opt = document.createElement('div');
+    opt.className = 'layer-option';
+    opt.dataset.id = b.id;
+    opt.innerHTML = `<span class="layer-swatch" style="background:${b.swatch}"></span><span>${b.name}</span>`;
+    opt.addEventListener('click', () => { setBasemap(b.id); layerPanel.classList.remove('open'); layerBtn.classList.remove('open'); });
+    layerPanel.appendChild(opt);
+  });
+  document.querySelectorAll('.layer-option').forEach(el => el.classList.toggle('active', el.dataset.id === savedBasemap));
+}
+montarSeletorDeMapas();
 
 layerBtn.addEventListener('click', (e) => {
   e.stopPropagation();
