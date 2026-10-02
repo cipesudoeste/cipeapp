@@ -205,6 +205,7 @@
     $("btn-entrar").disabled = false;
     if (error) {
       if (/rate|too many/i.test(error.message)) return msg("Muitas tentativas. Aguarde alguns minutos.", true);
+      if (/not confirmed/i.test(error.message)) return msg("Essa conta ainda não está confirmada. Fale com o master para gerar uma nova senha.", true);
       return msg("Senha incorreta.", true);
     }
     sessionStorage.setItem("cipe-metodo", "senha");
