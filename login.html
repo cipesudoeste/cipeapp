@@ -165,14 +165,15 @@
     if (!emailValido(email)) return msg("Informe um e-mail válido.", true);
     $("btn-continuar").disabled = true;
     msg("Verificando…");
-    const { data: temSenha, error } = await sb.rpc("status_login_email", { p_email: email });
+    const { data: status, error } = await sb.rpc("status_login_email", { p_email: email });
     $("btn-continuar").disabled = false;
     if (error) { console.error(error); return msg("Não foi possível verificar agora. Tente novamente.", true); }
+    if (!status.existe) return msg("Esse e-mail não está cadastrado como administrador. Confira o endereço ou fale com o master.", true);
     msg("");
-    semSenhaCadastrada = !temSenha;
+    semSenhaCadastrada = !status.tem_senha;
     $("email-confirmado").textContent = email;
     etapa("etapa-senha");
-    if (temSenha) {
+    if (status.tem_senha) {
       $("bloco-senha").hidden = false;
       $("login-senha").focus();
     } else {
