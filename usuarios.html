@@ -132,11 +132,12 @@ function render() {
       </select></td>`;
     }).join("");
     const acoes = proprio ? `<span class="us-master">você</span>` : `
+      <button class="ef-btn" data-acao="senha" data-email="${esc(u.email)}">Gerar senha</button>
       <button class="ef-btn" data-acao="master" data-email="${esc(u.email)}">${master ? "Tirar master" : "Tornar master"}</button>
       <button class="ef-btn" data-acao="ativo" data-email="${esc(u.email)}">${u.ativo ? "Bloquear" : "Reativar"}</button>
       <button class="ef-btn" data-acao="remover" data-email="${esc(u.email)}">Remover</button>`;
     return `<tr class="${u.ativo ? "" : "inativo"}">
-      <td><div>${esc(u.nome || "—")}${master ? ' <span class="us-master">· master</span>' : ""}</div><div class="us-email">${esc(u.email)}</div></td>
+      <td><div>${esc(u.nome || "—")}${master ? ' <span class="us-master">· master</span>' : ""}${u.deve_trocar_senha ? ' <span class="us-master" style="color:#e08a72;">· senha provisória</span>' : ""}</div><div class="us-email">${esc(u.email)}</div></td>
       ${cols}<td><div class="us-acoes">${acoes}</div></td></tr>`;
   }).join("") || `<tr><td>Nenhum usuário.</td></tr>`;
 }
@@ -171,6 +172,19 @@ $("us-tbody").addEventListener("click", async (e) => {
     const vira = u.papel !== "master";
     if (vira && !confirm(`Tornar ${u.email} MASTER? Ele terá acesso total, inclusive a esta tela.`)) return;
     if (await salvar(u.email, { papel: vira ? "master" : "usuario" })) render();
+  }
+  if (btn.dataset.acao === "senha") {
+    if (!confirm(`Gerar uma nova senha provisória para ${u.email}?\nA senha atual dessa pessoa (se já tiver uma) deixa de funcionar.`)) return;
+    btn.disabled = true; btn.textContent = "Gerando…";
+    const { data, error } = await window.sbAuth.functions.invoke("gerar-senha-admin", { body: { email: u.email } });
+    btn.disabled = false; btn.textContent = "Gerar senha";
+    if (error || !data?.ok) {
+      const ERROS = { sem_permissao: "Só um master pode gerar senha.", nao_e_administrador: "E-mail não está na lista de usuários.", email_invalido: "E-mail inválido." };
+      let codigo = data?.erro; if (!codigo) { try { codigo = (await error.context.json()).erro; } catch (_) {} }
+      return msg("lista-msg", "Erro: " + (ERROS[codigo] || codigo || "não foi possível gerar a senha."), true);
+    }
+    u.deve_trocar_senha = true; render();
+    prompt(`Senha provisória de ${data.email} — copie e envie com segurança (WhatsApp, por exemplo). Ela é obrigada a trocar no primeiro acesso:`, data.senha);
   }
   if (btn.dataset.acao === "ativo") {
     if (await salvar(u.email, { ativo: !u.ativo })) render();

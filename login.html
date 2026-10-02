@@ -123,8 +123,9 @@
     "sem-acesso": "Sua conta não tem permissão para os painéis. Fale com o administrador.",
     "erro": "Não foi possível confirmar seu acesso. Entre novamente.",
     "config": "Configuração do sistema ausente.",
+    "trocar-senha": "Confirme para trocar sua senha provisória.",
   };
-  if (params.get("motivo")) msg(motivos[params.get("motivo")] || "", true);
+  if (params.get("motivo")) msg(motivos[params.get("motivo")] || "", params.get("motivo") !== "trocar-senha");
   if (params.get("email")) $("login-email").value = params.get("email");
 
   async function concluir() {
@@ -134,6 +135,17 @@
       etapa("etapa-email");
       return msg(motivos["sem-acesso"], true);
     }
+    if (acesso.deve_trocar_senha) {
+      msg("");
+      etapa("etapa-nova-senha");
+      SenhaUI.montar($("nova-senha"), sb, {
+        titulo: "Troque sua senha provisória",
+        texto: "Essa senha foi gerada pelo administrador e vale só para este primeiro acesso. Defina uma senha sua antes de continuar.",
+        exigirAtual: false, botao: "Salvar e entrar",
+        aoConcluir: async () => { await sb.rpc("confirmar_senha_trocada"); location.replace(destino); },
+      });
+      return;
+    }
     location.replace(destino);
   }
 
@@ -142,7 +154,9 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
     const { data: acesso } = await sb.rpc("meu_acesso");
-    if (acesso) location.replace(destino);
+    if (!acesso) return;
+    if (acesso.deve_trocar_senha) return concluir();
+    location.replace(destino);
   })();
 
   /* ---- fase 1: só o e-mail. O sistema decide o método sozinho ---- */
